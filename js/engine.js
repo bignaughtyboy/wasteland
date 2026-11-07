@@ -29,9 +29,13 @@ function need(r){
 }
 
 // ---------- 화면 ----------
+let prev = null;
+function flash(sel){ const el = $(sel); el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit"); }
 function render(){
   const bar = (v,id) => { $(id).innerHTML = Array.from({length:MAX},(_,i)=>`<b class="${i<v?'on':''}"></b>`).join(""); };
   bar(S.hp,"#hp-bar"); bar(S.san,"#san-bar");
+  if(prev){ if(S.hp < prev.hp) flash("#hp-bar"); if(S.san < prev.san) flash("#san-bar"); }
+  prev = { hp:S.hp, san:S.san };
   $("#hp-num").textContent = `${S.hp}/${MAX}`; $("#san-num").textContent = `${S.san}/${MAX}`;
   const st = D.sanStates.find(s => S.san>=s[0] && S.san<=s[1]);
   $("#san-state").textContent = st ? st[2] : "";
@@ -74,12 +78,12 @@ function renderMap(){
 function show(html){ $("#sheet").innerHTML = html; $("#modal").hidden = false; }
 function close(){ $("#modal").hidden = true; }
 function chips(r){
-  const c = [];
-  if(r.hp) c.push(`체력 ${r.hp>0?"+":""}${r.hp}`);
-  if(r.san) c.push(`정신력 ${r.san>0?"+":""}${r.san}`);
-  (r.give||[]).forEach(i => c.push("획득: "+iname(i)));
-  (r.take||[]).forEach(i => c.push("소모: "+iname(i)));
-  return c.length ? `<div class="chips">${c.map(x=>`<span>${x}</span>`).join("")}</div>` : "";
+  const c = [], sg = v => (v>0 ? "+" : "") + v;
+  if(r.hp)  c.push([`체력 ${sg(r.hp)}`, r.hp>0]);
+  if(r.san) c.push([`정신력 ${sg(r.san)}`, r.san>0]);
+  (r.give||[]).forEach(i => c.push(["획득: "+iname(i), true]));
+  (r.take||[]).forEach(i => c.push(["소모: "+iname(i), false]));
+  return c.length ? `<div class="chips">${c.map(([t,p])=>`<span class="${p?"pos":""}">${t}</span>`).join("")}</div>` : "";
 }
 function addLog(t){ S.log.unshift(t); S.log = S.log.slice(0,60); }
 
@@ -104,7 +108,7 @@ function explore(place){
   const t = (S.san <= D.lowSan && e.textLow) ? e.textLow : e.text;
   const btns = e.choices.map((c,i) => {
     const can = ok(c.req);
-    return `<button class="choice" data-i="${i}" ${can?"":"disabled"}>${c.text}${can?"":`<span class="hint">${need(c.req)}</span>`}</button>`;
+    return `<button class="choice" data-i="${i}" ${can?"":"disabled"}><b class="no">${i+1}</b><span><span class="t">${c.text}</span>${can?"":`<span class="hint">${need(c.req)}</span>`}</span></button>`;
   }).join("");
   SND.play("open");
   show(`<h2>${e.title}</h2><p>${t}</p>${btns}`);
@@ -192,6 +196,12 @@ $("#t-start").onclick = () => {
 };
 $("#t-continue").onclick = () => { S = load() || fresh(); enter(); };
 $("#btn-title").onclick = () => { save(); showTitle(); };
+
+document.addEventListener("keydown", e => {
+  if($("#modal").hidden || e.ctrlKey || e.metaKey || e.altKey || !/^[1-9]$/.test(e.key)) return;
+  const b = document.querySelectorAll("#sheet .choice[data-i]")[+e.key - 1];
+  if(b && !b.disabled) b.click();
+});
 
 render();
 showTitle();
