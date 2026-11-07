@@ -1,68 +1,19 @@
-# Prerequisites
-*.d
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Linker files
-*.ilk
-
-# Debugger Files
-*.pdb
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-*.so.*
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# Build directories
-build/
-Build/
-build-*/
-
-# CMake generated files
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-Makefile
-install_manifest.txt
-compile_commands.json
-
-# Temporary files
-*.tmp
-*.log
-*.bak
+# 에디터 / IDE
+.vscode/
+.idea/
 *.swp
+*~
 
-# vcpkg
-vcpkg_installed/
+# 로그, 임시 파일
+*.log
+*.tmp
 
-# debug information files
-*.dwo
-
-# test output & cache
-Testing/
-.cache/
+# 나중에 npm/빌드 도구를 도입할 경우 대비
+node_modules/
+dist/
+.env
