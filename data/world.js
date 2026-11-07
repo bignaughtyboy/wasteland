@@ -2,19 +2,19 @@
 // 새 지역 추가: regions에 항목을 넣고 places[지역id]에 장소를 추가하세요.
 window.GAME_DATA = {
   regions: [
-    { id: "old",  name: "구도심",   x: 30, y: 62, unlocked: true },
-    { id: "ind",  name: "산업지대", x: 58, y: 78, unlocked: false },
-    { id: "lake", name: "호수",     x: 22, y: 26, unlocked: false },
-    { id: "city", name: "신도시",   x: 62, y: 42, unlocked: false },
-    { id: "mtn",  name: "산악지대", x: 84, y: 18, unlocked: false }
+    { id: "old",  name: "구도심",   x: 21, y: 63, unlocked: true },
+    { id: "ind",  name: "산업지대", x: 25, y: 22, unlocked: false },
+    { id: "lake", name: "호수",     x: 41, y: 43, unlocked: false },
+    { id: "city", name: "신도시",   x: 71, y: 32, unlocked: false },
+    { id: "mtn",  name: "산악지대", x: 76, y: 66, unlocked: false }
   ],
   places: {
     old: [
-      { id: "building",    name: "폐건물",      x: 22, y: 34 },
-      { id: "convenience", name: "편의점",      x: 72, y: 28 },
-      { id: "house",       name: "버려진 주택", x: 50, y: 52 },
-      { id: "hospital",    name: "병원",        x: 76, y: 70 },
-      { id: "subway",      name: "지하철역",    x: 26, y: 74 }
+      { id: "building",    name: "폐건물",      x: 30, y: 30 },
+      { id: "convenience", name: "편의점",      x: 72, y: 24 },
+      { id: "house",       name: "버려진 주택", x: 50, y: 50 },
+      { id: "hospital",    name: "병원",        x: 74, y: 68 },
+      { id: "subway",      name: "지하철역",    x: 28, y: 74 }
     ]
   },
   // use: 인벤토리에서 사용할 때의 효과
@@ -39,9 +39,9 @@ window.GAME_DATA = {
     "바람 소리뿐이다. 오늘은 이곳에서 얻을 것이 없다."
   ],
   endings: {
-    escape:   { title: "탈출 엔딩", text: "터널은 끝없이 이어졌고, 마침내 희미한 빛이 보였다.\n황폐한 도시를 등지고 걸었다. 뒤돌아보지 않았다.\n\n(임시 엔딩 · 1차 프로토타입)" },
-    truth:    { title: "진실 엔딩", text: "기록과 관제실의 장부가 맞아떨어졌다.\n재앙은 우연이 아니었다. 누군가는 알았고, 누군가는 숨겼다.\n이제 그것을 아는 사람은 당신뿐이다.\n\n(임시 엔딩 · 1차 프로토타입)" },
-    sacrifice:{ title: "희생 엔딩", text: "민재를 터널로 밀어 넣고 철문을 닫았다.\n문 너머에서 부르는 소리가 점점 작아졌다.\n어둠 속에서 당신은 조용히 앉았다.\n\n(임시 엔딩 · 1차 프로토타입)" },
+    escape:   { title: "탈출 엔딩", text: "터널은 끝없이 이어졌고, 마침내 희미한 빛이 보였다.\n황폐한 도시를 등지고 걸었다. 뒤돌아보지 않았다.\n\n(임시 엔딩 · 프로토타입)" },
+    truth:    { title: "진실 엔딩", text: "기록과 관제실의 장부가 맞아떨어졌다.\n재앙은 우연이 아니었다. 누군가는 알았고, 누군가는 숨겼다.\n이제 그것을 아는 사람은 당신뿐이다.\n\n(임시 엔딩 · 프로토타입)" },
+    sacrifice:{ title: "희생 엔딩", text: "민재를 터널로 밀어 넣고 철문을 닫았다.\n문 너머에서 부르는 소리가 점점 작아졌다.\n어둠 속에서 당신은 조용히 앉았다.\n\n(임시 엔딩 · 프로토타입)" },
     death:    { title: "탐험 실패", text: "몸이 더는 움직이지 않았다.\n구도심의 폐허는 또 하나의 이야기를 삼켰다." }
   }
 };
