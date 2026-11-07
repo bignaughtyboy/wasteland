@@ -4,7 +4,7 @@ const D = window.GAME_DATA, $ = s => document.querySelector(s);
 const KEY = "wasteland-rpg-save", MAX = 10;
 let S = load() || fresh();
 
-function fresh(){ return { hp:MAX, san:MAX, inv:[], flags:{}, done:{}, seen:{}, log:[], region:null, over:null }; }
+function fresh(){ return { started:false, hp:MAX, san:MAX, inv:[], flags:{}, done:{}, seen:{}, log:[], region:null, over:null }; }
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 const clamp = v => Math.max(0, Math.min(MAX, v));
@@ -37,38 +37,35 @@ function render(){
   document.body.classList.toggle("low", S.san <= D.lowSan);
   renderMap();
 }
+const ICON = {
+  pin:  '<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>',
+  lock: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="1"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  dot:  '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/></svg>'
+};
+function zoom(reg){
+  const img = $("#map-img");
+  if(!reg){ img.style.transform = "none"; return; }
+  const s = 2.4, cl = (v,lo,hi) => Math.max(lo, Math.min(hi, v));
+  const tx = cl((0.5 - s*reg.x/100)*100, (1-s)*100, 0), ty = cl((0.5 - s*reg.y/100)*100, (1-s)*100, 0);
+  img.style.transform = `translate(${tx}%,${ty}%) scale(${s})`;
+}
 function renderMap(){
   const nodes = $("#nodes"); nodes.innerHTML = "";
-  const inRegion = S.region && D.places[S.region];
-  $("#btn-back").hidden = !inRegion;
-  $("#map-title").textContent = inRegion ? D.regions.find(r=>r.id===S.region).name : "세계 지도";
-  drawArt(inRegion);
-  const list = inRegion ? D.places[S.region] : D.regions;
-  list.forEach(n => {
+  const reg = (S.region && D.places[S.region]) ? D.regions.find(r => r.id===S.region) : null;
+  $("#btn-back").hidden = !reg;
+  $("#map-title").textContent = reg ? reg.name : "";
+  zoom(reg);
+  (reg ? D.places[reg.id] : D.regions).forEach(n => {
+    const locked = !reg && !n.unlocked;
     const b = document.createElement("button");
-    const locked = !inRegion && !n.unlocked;
     b.className = "node" + (locked ? " locked" : "") + (S.seen[n.id] ? " seen" : "");
-    b.textContent = locked ? n.name + " (잠김)" : n.name;
+    b.innerHTML = `<span class="dia">${locked ? ICON.lock : reg ? ICON.dot : ICON.pin}</span><span class="plate">${n.name}</span>`;
     b.style.left = n.x + "%"; b.style.top = n.y + "%";
     b.disabled = locked;
-    b.onclick = () => inRegion ? explore(n) : (S.region = n.id, save(), render());
+    b.setAttribute("aria-label", locked ? n.name + " (잠김)" : n.name);
+    b.onclick = () => reg ? explore(n) : (S.region = n.id, save(), render());
     nodes.appendChild(b);
   });
-}
-function drawArt(region){
-  const a = $("#map-art");
-  if(region){ // 구역 지도: 도로와 건물 윤곽
-    a.innerHTML = `<path d="M0 250 Q200 230 400 260 T800 240"/><path d="M400 0 Q380 250 410 500"/><path d="M120 120 L520 360"/>
-      <rect x="40" y="60" width="130" height="110"/><rect x="540" y="50" width="150" height="90"/><rect x="560" y="320" width="150" height="120"/><rect x="60" y="340" width="140" height="110"/><rect x="300" y="190" width="100" height="70"/>`;
-  } else { // 세계 지도: 지형 스케치
-    a.innerHTML = `<path d="M30 40 Q200 10 420 30 T780 60 L770 470 Q500 490 300 470 T30 440 Z"/>
-      <ellipse cx="170" cy="130" rx="85" ry="42"/><path d="M130 130 q20-12 40 0 t40 0"/>
-      <path d="M620 150 l30-70 30 70 M670 150 l30-90 30 90 M705 150 l30-60 30 60"/>
-      <path d="M470 170 v-45 h30 v45 M505 170 v-70 h30 v70 M540 170 v-55 h28 v55 M475 175 h110"/>
-      <path d="M440 380 v-35 h50 v35 M460 345 v-30 h10 v30 M500 380 v-25 h45 v25"/>
-      <path d="M200 310 v-30 h40 v30 M245 310 v-45 h35 v45 M285 310 v-25 h30 v25 M195 315 h125"/>
-      <path d="M260 330 Q380 360 450 400 M420 330 Q520 300 560 190 M500 400 Q620 330 680 160" stroke-dasharray="6 7"/>`;
-  }
 }
 
 // ---------- 모달 ----------
@@ -148,7 +145,7 @@ function end(id){
   show(`<h2>${e.title}</h2><p>${e.text}</p><button class="choice" id="again">처음부터 다시 시작</button>`);
   $("#again").onclick = restart;
 }
-function restart(){ S = fresh(); save(); close(); render(); }
+function restart(){ S = fresh(); save(); close(); showTitle(); }
 
 // ---------- 가방 / 기록 ----------
 $("#btn-inv").onclick = () => {
@@ -166,9 +163,24 @@ $("#btn-log").onclick = () => {
   show(`<h2>기록</h2>${S.log.length ? S.log.map(l=>`<div class="log-row">${l}</div>`).join("") : "<p>아직 기록이 없다.</p>"}<br><button class="choice" id="x">닫기</button>`);
   $("#x").onclick = close;
 };
-$("#btn-new").onclick = () => { if(confirm("진행 상황이 지워집니다. 새로 시작할까요?")) restart(); };
 $("#btn-back").onclick = () => { S.region = null; save(); render(); };
 
+// ---------- 타이틀 ----------
+function showTitle(){
+  const sv = load();
+  $("#t-continue").hidden = !(sv && sv.started && !sv.over);
+  $("#title").classList.remove("hide");
+}
+function enter(){ $("#title").classList.add("hide"); render(); }
+$("#t-start").onclick = () => {
+  const sv = load();
+  if(sv && sv.started && !sv.over && !confirm("저장된 진행 상황이 지워집니다. 새로 시작할까요?")) return;
+  S = fresh(); S.started = true; save(); enter();
+};
+$("#t-continue").onclick = () => { S = load() || fresh(); enter(); };
+$("#btn-title").onclick = () => { save(); showTitle(); };
+
 render();
-if(S.over) end(S.over);
+showTitle();
+window.__wastelandLoaded = true;
 })();
