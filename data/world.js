@@ -1,8 +1,9 @@
 // ===== 월드 데이터: 지역 / 장소 / 아이템 / 엔딩 =====
 // 새 지역 추가: regions에 항목을 넣고 places[지역id]에 장소를 추가하세요.
 window.GAME_DATA = {
+  worldMap: "assets/world-map.svg",   // 세계 지도 이미지 (교체 가능)
   regions: [
-    { id: "old",  name: "구도심",   x: 21, y: 63, unlocked: true },
+    { id: "old",  name: "구도심",   x: 21, y: 63, unlocked: true, map: "assets/region-old.svg" },
     { id: "ind",  name: "산업지대", x: 25, y: 22, unlocked: false },
     { id: "lake", name: "호수",     x: 41, y: 43, unlocked: false },
     { id: "city", name: "신도시",   x: 71, y: 32, unlocked: false },
@@ -11,10 +12,10 @@ window.GAME_DATA = {
   places: {
     old: [
       { id: "building",    name: "폐건물",      x: 30, y: 30 },
-      { id: "convenience", name: "편의점",      x: 72, y: 24 },
+      { id: "convenience", name: "편의점",      x: 69, y: 37 },
       { id: "house",       name: "버려진 주택", x: 50, y: 50 },
-      { id: "hospital",    name: "병원",        x: 74, y: 68 },
-      { id: "subway",      name: "지하철역",    x: 28, y: 74 }
+      { id: "hospital",    name: "병원",        x: 73, y: 78 },
+      { id: "subway",      name: "지하철역",    x: 31, y: 68 }
     ]
   },
   // use: 인벤토리에서 사용할 때의 효과
