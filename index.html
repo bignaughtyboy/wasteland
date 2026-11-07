@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>미정 (가칭) - 텍스트 탐험 생존 RPG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4"/><feDisplacementMap in="SourceGraphic" scale="4"/></filter></svg>
+
+<main id="app">
+  <header>
+    <h1 id="title">미정 <small>(가칭)</small></h1>
+    <nav>
+      <button id="btn-inv">가방</button>
+      <button id="btn-log">기록</button>
+      <button id="btn-new">새 게임</button>
+    </nav>
+  </header>
+
+  <section id="map" aria-label="지도">
+    <div id="map-title"></div>
+    <svg id="map-art" viewBox="0 0 800 500" preserveAspectRatio="none"></svg>
+    <div id="nodes"></div>
+    <button id="btn-back" hidden>← 세계 지도</button>
+  </section>
+
+  <footer id="status">
+    <div class="stat"><span>체력</span><div id="hp-bar" class="bar"></div><em id="hp-num"></em></div>
+    <div class="stat"><span>정신력</span><div id="san-bar" class="bar"></div><em id="san-num"></em><i id="san-state"></i></div>
+  </footer>
+</main>
+
+<div id="modal" hidden><div id="sheet"></div></div>
+
+<script src="data/world.js"></script>
+<script src="data/events.js"></script>
+<script src="js/engine.js"></script>
+</body>
+</html>
