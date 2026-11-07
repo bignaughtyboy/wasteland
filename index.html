@@ -52,5 +52,20 @@
 <script src="data/world.js"></script>
 <script src="data/events.js"></script>
 <script src="js/engine.js"></script>
+<script>
+// 파일 위치가 잘못되어 스크립트가 로드되지 않았을 때 안내를 표시합니다.
+window.addEventListener("load", function(){
+  var miss = [];
+  if(!window.GAME_DATA) miss.push("data/world.js");
+  else if(!window.GAME_DATA.events) miss.push("data/events.js");
+  if(!window.__wastelandLoaded) miss.push("js/engine.js");
+  if(miss.length){
+    var d = document.createElement("div");
+    d.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99;padding:14px;background:#400;color:#fff;font:14px/1.6 sans-serif;text-align:center";
+    d.textContent = "로드 실패: " + miss.join(", ") + " 파일이 없거나 위치가 잘못되었습니다. 저장소 폴더 구조를 확인하세요. (F12 → Console/Network에서 404 확인)";
+    document.body.appendChild(d);
+  }
+});
+</script>
 </body>
 </html>
