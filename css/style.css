@@ -1,52 +1,73 @@
-:root{--ink:#26221c;--ink2:#5b5346;--paper:#d9cfb8;--paper2:#e7dec9;--edge:#a89c80;}
+:root{--ink:#2a2a28;--ink2:#63625d;--paper:#d3d2cc;--paper2:#e4e3de;--edge:#9b9a94;--blue:#a9b9c6;--serif:"Nanum Myeongjo","Batang",serif;
+ --display:"IM Fell English SC","Cinzel",Georgia,serif}
 *{box-sizing:border-box}
-html,body{height:100%;margin:0}
-body{font-family:"Nanum Myeongjo","Batang",serif;color:var(--ink);
- background:#8f866f;display:flex;justify-content:center;align-items:center}
-#app{width:min(1000px,100vw);height:min(760px,100vh);display:flex;flex-direction:column;padding:14px 18px;
- background:
-  url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/><feColorMatrix values='0 0 0 0 .3  0 0 0 0 .25  0 0 0 0 .15  0 0 0 .22 0'/></filter><rect width='300' height='300' filter='url(%23n)'/></svg>"),
-  radial-gradient(ellipse at 50% 40%,var(--paper2),var(--paper) 70%,var(--edge));
- box-shadow:inset 0 0 90px rgba(80,60,30,.45),0 8px 30px rgba(0,0,0,.4)}
-header{display:flex;justify-content:space-between;align-items:center}
-h1{font-family:"Nanum Pen Script",cursive;font-size:40px;margin:0;font-weight:400}
-h1 small{font-size:20px;color:var(--ink2)}
-button{font:inherit;color:var(--ink);background:none;border:1.5px solid var(--ink);padding:5px 14px;margin-left:6px;cursor:pointer;
- border-radius:3px 7px 4px 8px}
-button:hover:not(:disabled){background:rgba(38,34,28,.12)}
+html,body{margin:0;min-height:100%}
+body{font-family:var(--serif);color:var(--ink);display:flex;justify-content:center;background:#8d8c87;
+ background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/><feColorMatrix values='0 0 0 0 .2  0 0 0 0 .2  0 0 0 0 .2  0 0 0 .25 0'/></filter><rect width='300' height='300' filter='url(%23n)'/></svg>")}
+button{font:inherit;color:var(--ink);background:none;border:1.5px solid var(--ink);padding:5px 14px;margin-left:6px;cursor:pointer;border-radius:3px 7px 4px 8px}
+button:hover:not(:disabled){background:rgba(42,42,40,.12)}
 button:disabled{opacity:.45;cursor:not-allowed}
 button:focus-visible{outline:2px dashed var(--ink);outline-offset:2px}
 
-#map{position:relative;flex:1;margin:10px 0;border:2px solid var(--ink);border-radius:4px 9px 5px 10px;overflow:hidden}
-#map-art{position:absolute;inset:0;width:100%;height:100%;filter:url(#rough);fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round;opacity:.75}
-#map-title{position:absolute;top:10px;left:16px;font-family:"Nanum Pen Script",cursive;font-size:30px;z-index:2}
-#nodes button.node{position:absolute;transform:translate(-50%,-50%);margin:0;padding:6px 12px;background:rgba(231,222,201,.92);
- font-family:"Nanum Pen Script",cursive;font-size:24px;border-width:2px}
-.node.locked{border-style:dashed;color:var(--ink2);border-color:var(--ink2)}
-.node.seen::after{content:" ✓";font-size:16px}
-#btn-back{position:absolute;bottom:10px;left:12px;background:var(--paper2);z-index:2}
+/* ---------- 타이틀 ---------- */
+#title{position:fixed;inset:0;z-index:50;isolation:isolate;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;color:#ecebe6}
+#title::before{content:"";position:absolute;inset:0;z-index:-2;background:url(../assets/world-map.jpg) center/cover;filter:grayscale(1) contrast(1.1) brightness(.5) blur(1.5px)}
+#title::after{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at center,rgba(20,20,18,.15),rgba(10,10,9,.85))}
+#title.hide{display:none}
+.title-box{animation:rise 1.6s ease both}
+#title h1{font-family:var(--display);font-weight:400;font-size:clamp(44px,12vw,128px);letter-spacing:.14em;margin:0 0 0 .14em;line-height:1;text-shadow:0 2px 0 rgba(0,0,0,.5),0 0 28px rgba(0,0,0,.6)}
+.sub{margin:18px 0 44px;letter-spacing:.2em;font-size:15px;color:#c9c8c2}
+.title-menu{display:flex;flex-direction:column;align-items:center;gap:12px}
+.title-menu button{margin:0;width:200px;padding:10px 0;font-size:18px;color:#ecebe6;border-color:#c9c8c2;background:rgba(0,0,0,.25);letter-spacing:.2em}
+.title-menu button:hover:not(:disabled){background:rgba(236,235,230,.16)}
+.ver{position:absolute;bottom:18px;color:#8d8c87;font-size:12px;letter-spacing:.1em}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.title-box{animation:none}}
 
-#status{display:grid;gap:8px}
+/* ---------- 게임 화면 ---------- */
+#app{width:min(100vw,760px);min-height:100vh;padding:10px 14px;display:flex;flex-direction:column;align-items:center;
+ background:linear-gradient(var(--paper2),var(--paper));box-shadow:0 0 60px rgba(0,0,0,.45)}
+header{width:100%;display:flex;justify-content:space-between;align-items:center;padding-bottom:8px}
+#logo{font-family:var(--display);font-weight:400;font-size:28px;letter-spacing:.14em;margin:0}
+
+#map{position:relative;overflow:hidden;width:min(100%,calc((100vh - 190px) * .8025));aspect-ratio:630/785;background:#cfcec8;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+#map-img{position:absolute;inset:0;background:url(../assets/world-map.jpg) center/100% 100%;transform-origin:0 0;transition:transform .7s ease}
+#map-title{position:absolute;top:5%;left:50%;transform:translateX(-50%);font-family:var(--display);font-size:22px;letter-spacing:.2em;color:var(--ink);text-shadow:0 0 6px var(--paper2),0 0 6px var(--paper2);z-index:2}
+
+#nodes .node{position:absolute;margin:0;padding:0;border:0;background:none;transform:translate(-50%,-22px);display:flex;flex-direction:column;align-items:center;z-index:3}
+.node .dia{width:38px;height:38px;transform:rotate(45deg);display:flex;align-items:center;justify-content:center;background:var(--blue);border:2px solid #4f5c66;box-shadow:0 2px 5px rgba(0,0,0,.4)}
+.node .dia svg{width:20px;height:20px;transform:rotate(-45deg);fill:none;stroke:#2d3840;stroke-width:2}
+.node .plate{margin-top:12px;min-width:84px;padding:3px 12px;background:#e1e0da;border:1.5px solid #55544f;font-size:14px;font-weight:700;box-shadow:0 2px 4px rgba(0,0,0,.35);border-radius:2px}
+.node.locked .dia{background:#8f8e89;border-color:#4b4a46}
+.node.locked .dia svg{stroke:#2a2a28}
+.node.locked .plate{background:#bdbcb6;color:var(--ink2)}
+.node:not(.locked):hover .dia{background:#c3d1dc}
+.node:not(.locked):hover .plate{background:#f2f1ec}
+.node.seen .plate::after{content:" ✓";font-weight:400}
+.node.locked,.node:disabled{cursor:not-allowed;opacity:1}
+.node:focus-visible .plate{outline:2px dashed var(--ink);outline-offset:2px}
+#btn-back{position:absolute;bottom:12px;left:12px;background:var(--paper2);z-index:4;margin:0}
+
+#status{width:min(100%,calc((100vh - 190px) * .8025));display:grid;gap:8px;padding-top:12px}
 .stat{display:flex;align-items:center;gap:10px}
-.stat span{width:60px;font-weight:700}
-.bar{display:flex;gap:4px}
-.bar b{width:22px;height:16px;border:1.5px solid var(--ink);border-radius:2px 4px 2px 5px}
+.stat span{width:56px;font-weight:700}
+.bar{display:flex;gap:3px}
+.bar b{width:clamp(14px,3.6vw,22px);height:16px;border:1.5px solid var(--ink);border-radius:2px 4px 2px 5px}
 .bar b.on{background:var(--ink)}
-.stat em{font-style:normal;color:var(--ink2);min-width:42px}
-.stat i{font-style:normal;color:var(--ink2)}
+.stat em{font-style:normal;color:var(--ink2);min-width:40px}
+.stat i{font-style:normal;color:var(--ink2);font-size:14px}
 
-#modal{position:fixed;inset:0;background:rgba(20,16,10,.6);display:flex;justify-content:center;align-items:center;padding:14px}
+/* ---------- 모달 ---------- */
+#modal{position:fixed;inset:0;z-index:60;background:rgba(15,15,14,.62);display:flex;justify-content:center;align-items:center;padding:14px}
 #modal[hidden]{display:none}
-#sheet{width:min(640px,100%);max-height:92vh;overflow:auto;padding:26px 30px;background:var(--paper2);border:2px solid var(--ink);
- border-radius:5px 12px 6px 14px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
-#sheet h2{font-family:"Nanum Pen Script",cursive;font-size:34px;font-weight:400;margin:0 0 10px}
+#sheet{width:min(640px,100%);max-height:92vh;overflow:auto;padding:26px 30px;background:var(--paper2);border:2px solid var(--ink);border-radius:5px 12px 6px 14px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+#sheet h2{font-family:var(--serif);font-size:22px;margin:0 0 12px}
 #sheet p{line-height:1.85;margin:0 0 14px;white-space:pre-line}
 #sheet .choice{display:block;width:100%;text-align:left;margin:8px 0;padding:10px 14px}
 #sheet .hint{display:block;font-size:13px;color:var(--ink2)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px}
 .chips span{border:1px dashed var(--ink);padding:2px 8px;font-size:14px}
-.low #sheet p{text-shadow:1px 0 rgba(120,20,20,.35),-1px 0 rgba(20,20,120,.25)}
+.low #sheet p{text-shadow:1px 0 rgba(120,20,20,.3),-1px 0 rgba(20,20,120,.22)}
 .inv-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dotted var(--ink2)}
 .inv-row small{display:block;color:var(--ink2)}
 .log-row{padding:4px 0;border-bottom:1px dotted var(--ink2);font-size:15px}
-@media(max-width:600px){#app{padding:8px}.bar b{width:15px}#sheet{padding:18px}}
