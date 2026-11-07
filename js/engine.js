@@ -1,6 +1,7 @@
 // ===== 게임 엔진: 데이터(data/*.js)를 읽어 동작합니다. 콘텐츠는 data만 고치면 됩니다. =====
 (() => {
 const D = window.GAME_DATA, $ = s => document.querySelector(s);
+const SND = window.Sound || { play(){}, set(){}, on:true };
 const KEY = "wasteland-rpg-save", MAX = 10;
 let S = load() || fresh();
 
@@ -105,6 +106,7 @@ function explore(place){
     const can = ok(c.req);
     return `<button class="choice" data-i="${i}" ${can?"":"disabled"}>${c.text}${can?"":`<span class="hint">${need(c.req)}</span>`}</button>`;
   }).join("");
+  SND.play("open");
   show(`<h2>${e.title}</h2><p>${t}</p>${btns}`);
   document.querySelectorAll(".choice").forEach(b => b.onclick = () => choose(e, e.choices[+b.dataset.i]));
 }
@@ -117,6 +119,8 @@ function choose(e, c){
   (r.take||[]).forEach(i => { const k = S.inv.indexOf(i); if(k>=0) S.inv.splice(k,1); });
   (r.give||[]).forEach(i => S.inv.push(i));
   Object.assign(S.flags, r.set||{});
+  if(r.hp < 0) SND.play("hurt"); else if(r.san < 0) SND.play("mind");
+  else if(r.hp > 0 || r.san > 0) SND.play("heal"); else if((r.give||[]).length) SND.play("item");
   addLog(`[${e.title}] ${c.text}`);
   save();
   show(`<h2>${e.title}</h2><p>${r.t}</p>${chips(r)}<button class="choice" id="next">계속</button>`);
@@ -141,7 +145,7 @@ function collapse(){
   $("#ok").onclick = () => { close(); render(); };
 }
 function end(id){
-  S.over = id; save(); render();
+  S.over = id; save(); render(); SND.play("ending");
   const e = D.endings[id];
   show(`<h2>${e.title}</h2><p>${e.text}</p><button class="choice" id="again">처음부터 다시 시작</button>`);
   $("#again").onclick = restart;
@@ -160,6 +164,14 @@ $("#btn-inv").onclick = () => {
     S.inv.splice(+b.dataset.i,1); addLog(`${iname(id)} 사용`); save(); render(); $("#btn-inv").onclick();
   });
 };
+function showSettings(){
+  show(`<h2>설정</h2><div class="inv-row"><div>사운드<small>효과음을 켜거나 끕니다.</small></div><button id="s-sound" aria-pressed="${SND.on}">${SND.on ? "켜짐" : "꺼짐"}</button></div><br><button class="choice" id="x">닫기</button>`);
+  $("#x").onclick = close;
+  $("#s-sound").onclick = () => { SND.set(!SND.on); showSettings(); };
+}
+$("#btn-settings").onclick = showSettings;
+$("#t-settings").onclick = showSettings;
+document.addEventListener("click", e => { if(e.target.closest("button:not(:disabled)")) SND.play("click"); });
 $("#btn-log").onclick = () => {
   show(`<h2>기록</h2>${S.log.length ? S.log.map(l=>`<div class="log-row">${l}</div>`).join("") : "<p>아직 기록이 없다.</p>"}<br><button class="choice" id="x">닫기</button>`);
   $("#x").onclick = close;
