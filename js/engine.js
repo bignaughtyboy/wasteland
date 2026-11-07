@@ -45,7 +45,10 @@ const ICON = {
 function zoom(reg){
   const img = $("#map-img");
   img.style.backgroundImage = `url(${(reg && reg.map) || D.worldMap})`;
-  img.style.transform = "none";
+  if(!reg || !reg.zoom){ img.style.transform = "none"; return; }
+  const k = reg.zoom, cl = (v,lo,hi) => Math.max(lo, Math.min(hi, v));
+  const tx = cl((0.5 - k*reg.x/100)*100, (1-k)*100, 0), ty = cl((0.5 - k*reg.y/100)*100, (1-k)*100, 0);
+  img.style.transform = `translate(${tx}%,${ty}%) scale(${k})`;
 }
 function renderMap(){
   const nodes = $("#nodes"); nodes.innerHTML = "";
