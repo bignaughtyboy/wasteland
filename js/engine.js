@@ -44,10 +44,8 @@ const ICON = {
 };
 function zoom(reg){
   const img = $("#map-img");
-  if(!reg){ img.style.transform = "none"; return; }
-  const s = 2.4, cl = (v,lo,hi) => Math.max(lo, Math.min(hi, v));
-  const tx = cl((0.5 - s*reg.x/100)*100, (1-s)*100, 0), ty = cl((0.5 - s*reg.y/100)*100, (1-s)*100, 0);
-  img.style.transform = `translate(${tx}%,${ty}%) scale(${s})`;
+  img.style.backgroundImage = `url(${(reg && reg.map) || D.worldMap})`;
+  img.style.transform = "none";
 }
 function renderMap(){
   const nodes = $("#nodes"); nodes.innerHTML = "";
