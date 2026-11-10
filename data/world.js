@@ -1,6 +1,7 @@
 // ===== 월드 데이터: 지역 / 장소 / 아이템 / 엔딩 =====
 // 새 지역 추가: regions에 항목을 넣고 places[지역id]에 장소를 추가하세요.
 window.GAME_DATA = {
+  mapAspect: 1312 / 1199,   // 지도 이미지 세로/가로 비율
   worldMap: "assets/world-map.jpg",   // 세계 지도 이미지 (교체 가능)
   regions: [
     // x,y: 세계 지도 위 마커 위치(%) / zoom: 지역 화면에서 지도를 확대할 배율
@@ -10,13 +11,14 @@ window.GAME_DATA = {
     { id: "city", name: "신도시",   x: 80, y: 22, unlocked: false },
     { id: "mtn",  name: "산악지대", x: 82, y: 64, unlocked: false }
   ],
+  // art: 이벤트 장면 그림 = 지도 이미지의 확대 영역 (x,y는 지도 위 위치 %, z는 확대 배율)
   places: {
     old: [
-      { id: "building",    name: "폐건물",      x: 47, y: 30 },
-      { id: "convenience", name: "편의점",      x: 78, y: 48 },
-      { id: "house",       name: "버려진 주택", x: 14, y: 62 },
-      { id: "hospital",    name: "병원",        x: 30, y: 50 },
-      { id: "subway",      name: "지하철역",    x: 58, y: 72 }
+      { id: "building",    name: "폐건물",      x: 47, y: 30, art: { x: 22.5, y: 15, z: 3.1 } },
+      { id: "convenience", name: "편의점",      x: 78, y: 48, art: { x: 36, y: 19, z: 3.2 } },
+      { id: "house",       name: "버려진 주택", x: 14, y: 62, art: { x: 9, y: 20, z: 3.2 } },
+      { id: "hospital",    name: "병원",        x: 30, y: 50, art: { x: 17, y: 19, z: 3.0 } },
+      { id: "subway",      name: "지하철역",    x: 58, y: 72, art: { x: 30, y: 30, z: 3.0 } }
     ]
   },
   // use: 인벤토리에서 사용할 때의 효과
