@@ -14,11 +14,11 @@ window.GAME_DATA = {
   // art: 이벤트 장면 그림 = 지도 이미지의 확대 영역 (x,y는 지도 위 위치 %, z는 확대 배율)
   places: {
     old: [
-      { id: "building",    name: "폐건물",      x: 47, y: 30, art: { x: 22.5, y: 15, z: 3.1 } },
-      { id: "convenience", name: "편의점",      x: 78, y: 48, art: { x: 36, y: 19, z: 3.2 } },
-      { id: "house",       name: "버려진 주택", x: 14, y: 62, art: { x: 9, y: 20, z: 3.2 } },
-      { id: "hospital",    name: "병원",        x: 30, y: 50, art: { x: 17, y: 19, z: 3.0 } },
-      { id: "subway",      name: "지하철역",    x: 58, y: 72, art: { x: 30, y: 30, z: 3.0 } }
+      { id: "building",    name: "폐건물", icon: "building",      x: 47, y: 30, art: { x: 22.5, y: 15, z: 3.1 } },
+      { id: "convenience", name: "편의점", icon: "store",      x: 78, y: 48, art: { x: 36, y: 19, z: 3.2 } },
+      { id: "house",       name: "버려진 주택", icon: "house", x: 14, y: 62, art: { x: 9, y: 20, z: 3.2 } },
+      { id: "hospital",    name: "병원", icon: "hospital",        x: 30, y: 50, art: { x: 17, y: 19, z: 3.0 } },
+      { id: "subway",      name: "지하철역", icon: "subway",    x: 58, y: 72, art: { x: 30, y: 30, z: 3.0 } }
     ]
   },
   // use: 인벤토리에서 사용할 때의 효과
