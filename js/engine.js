@@ -3,9 +3,10 @@
 const D = window.GAME_DATA, $ = s => document.querySelector(s);
 const SND = window.Sound || { play(){}, set(){}, on:true };
 const KEY = "wasteland-rpg-save", MAX = 10;
-let S = load() || fresh();
+const norm = o => { if(o && !o.unlocked) o.unlocked = {}; return o; };
+let S = norm(load()) || fresh();
 
-function fresh(){ return { started:false, hp:MAX, san:MAX, inv:[], flags:{}, done:{}, seen:{}, log:[], region:null, over:null }; }
+function fresh(){ return { started:false, unlocked:{}, hp:MAX, san:MAX, inv:[], flags:{}, done:{}, seen:{}, log:[], region:null, over:null }; }
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 const clamp = v => Math.max(0, Math.min(MAX, v));
@@ -79,6 +80,11 @@ function zoom(reg){
   const tx = cl((0.5 - k*reg.x/100)*100, (1-k)*100, 0), ty = cl((0.5 - k*reg.y/100)*100, (1-k)*100, 0);
   img.style.transform = `translate(${tx}%,${ty}%) scale(${k})`;
 }
+function soon(n){
+  S.seen[n.id] = 1; save(); renderMap();
+  show(`<h2>${n.name}</h2><p>터널 끝에서 새어 나온 바람에 기름과 쇳내가 섞여 있다. 길은 열렸지만, 이 지역의 탐험은 아직 준비되지 않았다.\n\n(프로토타입은 구도심까지만 플레이할 수 있습니다.)</p><button class="choice" id="x">돌아간다</button>`);
+  $("#x").onclick = close;
+}
 function renderMap(){
   const nodes = $("#nodes"); nodes.innerHTML = "";
   const reg = (S.region && D.places[S.region]) ? D.regions.find(r => r.id===S.region) : null;
@@ -86,14 +92,14 @@ function renderMap(){
   $("#map-title").textContent = reg ? reg.name : "";
   zoom(reg);
   (reg ? D.places[reg.id] : D.regions).forEach(n => {
-    const locked = !reg && !n.unlocked;
+    const open = n.unlocked || S.unlocked[n.id], locked = !reg && !open;
     const b = document.createElement("button");
-    b.className = "node" + (locked ? " locked" : "") + (S.seen[n.id] ? " seen" : "");
+    b.className = "node" + (locked ? " locked" : "") + (S.seen[n.id] ? " seen" : "") + (!reg && S.unlocked[n.id] && !S.seen[n.id] ? " fresh" : "");
     b.innerHTML = `<span class="dia">${locked ? ICON.lock : reg ? ICON.dot : ICON.pin}</span><span class="plate">${n.name}</span>`;
     b.style.left = n.x + "%"; b.style.top = n.y + "%";
     b.disabled = locked;
     b.setAttribute("aria-label", locked ? n.name + " (잠김)" : n.name);
-    b.onclick = () => reg ? explore(n) : (S.region = n.id, save(), render());
+    b.onclick = () => reg ? explore(n) : (D.places[n.id] ? (S.seen[n.id] = 1, S.region = n.id, save(), render()) : soon(n));
     nodes.appendChild(b);
   });
 }
@@ -141,6 +147,7 @@ function chips(r){
   if(r.san) c.push([`정신력 ${sg(r.san)}`, r.san>0]);
   (r.give||[]).forEach(i => c.push(["획득: "+iname(i), true]));
   (r.take||[]).forEach(i => c.push(["소모: "+iname(i), false]));
+  (r.unlock||[]).forEach(id => c.push(["새 지역 해금: "+D.regions.find(x=>x.id===id).name, true]));
   return c.length ? `<div class="chips">${c.map(([t,p])=>`<span class="${p?"pos":""}">${t}</span>`).join("")}</div>` : "";
 }
 function addLog(t){ S.log.unshift(t); S.log = S.log.slice(0,60); }
@@ -183,7 +190,8 @@ function choose(e, c, art){
   (r.take||[]).forEach(i => { const k = S.inv.indexOf(i); if(k>=0) S.inv.splice(k,1); });
   (r.give||[]).forEach(i => S.inv.push(i));
   Object.assign(S.flags, r.set||{});
-  if(r.hp < 0) SND.play("hurt"); else if(r.san < 0) SND.play("mind");
+  (r.unlock||[]).forEach(id => S.unlocked[id] = 1);
+  if((r.unlock||[]).length) SND.play("ending"); else if(r.hp < 0) SND.play("hurt"); else if(r.san < 0) SND.play("mind");
   else if(r.hp > 0 || r.san > 0) SND.play("heal"); else if((r.give||[]).length) SND.play("item");
   addLog(`[${e.title}] ${c.text}`);
   save();
@@ -256,7 +264,7 @@ $("#t-start").onclick = () => {
   if(sv && sv.started && !sv.over && !confirm("저장된 진행 상황이 지워집니다. 새로 시작할까요?")) return;
   S = fresh(); S.started = true; save(); enter();
 };
-$("#t-continue").onclick = () => { S = load() || fresh(); enter(); };
+$("#t-continue").onclick = () => { S = norm(load()) || fresh(); enter(); };
 $("#btn-title").onclick = () => { save(); showTitle(); };
 
 document.addEventListener("keydown", e => {
