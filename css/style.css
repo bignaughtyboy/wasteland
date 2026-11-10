@@ -55,23 +55,53 @@ header nav button:hover:not(:disabled){background:none;color:#fff;border-bottom-
 .node.locked,.node:disabled{cursor:not-allowed;opacity:1}
 #btn-back{position:absolute;bottom:12px;left:12px;background:#e6e3d9;z-index:4;margin:0;box-shadow:0 2px 5px rgba(0,0,0,.4)}
 
-/* 탐험 노트(상태창) */
-#status{width:var(--mapw);margin-top:12px;display:grid;gap:10px;padding:14px 18px;position:relative;
-  background:var(--noise),linear-gradient(#e2dfd4,#d5d2c6);box-shadow:0 8px 24px rgba(0,0,0,.55);
-  border-radius:1px 3px 2px 4px}
+/* 탐험 노트(상태창): 심장(체력) · 눈(정신력) */
+#status{width:var(--mapw);margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;padding:14px 18px;position:relative;
+  background:var(--noise),linear-gradient(#e2dfd4,#d5d2c6);box-shadow:0 8px 24px rgba(0,0,0,.55);border-radius:1px 3px 2px 4px}
 #status::before{content:"";position:absolute;inset:5px;border:1px solid var(--line);pointer-events:none}
-.stat{display:flex;align-items:center;gap:12px}
-.stat>span{width:56px;font-weight:700;letter-spacing:.08em}
-.stat.hp{color:var(--rust)} .stat.san{color:var(--steel)}
-.stat.hp>span,.stat.san>span{color:var(--ink)}
-.bar{display:flex;gap:4px}
-.bar b{width:clamp(13px,3.2vw,24px);height:15px;border:1.5px solid currentColor;border-radius:1px 3px 1px 4px;transform:skewX(-8deg)}
-.bar b.on{background:repeating-linear-gradient(135deg,currentColor 0 2px,transparent 2px 4px),color-mix(in srgb,currentColor 55%,transparent)}
-.bar.hit{animation:hit .4s}
-@keyframes hit{0%,100%{transform:none}25%{transform:translateX(-4px)}60%{transform:translateX(4px)}}
-.stat em{font-style:normal;color:var(--ink2);min-width:38px;font-size:15px}
-.stat i{font-style:italic;color:var(--ink2);font-size:14px}
-body.low .stat.san{color:var(--rust)}
+.vital{display:flex;align-items:center;gap:12px;min-width:0}
+.vital .ico{width:78px;height:78px;flex:none;overflow:visible}
+.ico .bg{fill:#ebe8de}
+.ico .line{fill:none;stroke:var(--ink);stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+.vital .txt{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.vital .lab{font-size:13px;letter-spacing:.12em;color:var(--ink2)}
+.vital b{font-family:var(--display);font-size:34px;font-weight:400;line-height:1.05}
+.vital b small{font-size:15px;color:var(--ink2);margin-left:1px}
+.vital i{font-size:14px;font-style:italic;color:var(--ink2);margin-bottom:5px;min-height:1.25em}
+.vital.hp b{color:var(--rust)} .vital.san b{color:var(--steel)}
+.bar{display:flex;gap:3px}
+.bar b{width:9px;height:6px;border:1px solid var(--ink2);border-radius:1px;transform:none}
+.vital.hp .bar b.on{background:var(--rust);border-color:var(--rust)}
+.vital.san .bar b.on{background:var(--steel);border-color:var(--steel)}
+
+.beat{transform-box:fill-box;transform-origin:center;animation:beat var(--beat,1.4s) ease-in-out infinite}
+@keyframes beat{0%,100%{transform:scale(1)}12%{transform:scale(1.1)}24%{transform:scale(1)}38%{transform:scale(1.06)}52%{transform:scale(1)}}
+.hp-dead .beat{animation:none}
+.hp-crit .vital.hp b{animation:throb 1s ease-in-out infinite}
+.eye{transform-box:fill-box;transform-origin:center}
+.san-low .eye{animation:twitch 3s infinite}
+.san-crit .eye{animation:twitch .7s infinite}
+.san-low .vital.san .txt{animation:tremble 2.4s infinite}
+.san-crit .vital.san .txt{animation:tremble .35s infinite}
+.san-low .vital.san b,.san-low .vital.san i{color:var(--rust)}
+.ico.hit{animation:hit .45s}
+.ico.gain{animation:gain .9s}
+@keyframes hit{0%,100%{transform:none;filter:none}20%{transform:translate(-5px,1px) rotate(-4deg);filter:drop-shadow(0 0 6px #8b3a2b)}55%{transform:translate(5px,-1px) rotate(4deg)}}
+@keyframes gain{0%,100%{filter:none;transform:none}40%{filter:drop-shadow(0 0 8px #4d6071);transform:scale(1.12)}}
+@keyframes twitch{0%,90%,100%{transform:none}92%{transform:translate(1.5px,-1px) rotate(2deg)}95%{transform:translate(-1.5px,1px) rotate(-2deg)}}
+@keyframes tremble{0%,92%,100%{transform:none}94%{transform:translateX(1px)}97%{transform:translateX(-1px)}}
+@keyframes throb{50%{opacity:.55}}
+
+/* 위험 시 화면 가장자리 효과 */
+#fx{position:fixed;inset:0;z-index:40;pointer-events:none}
+#fx>div{position:absolute;inset:0;opacity:0;transition:opacity 1.2s}
+#fx-hp{background:radial-gradient(ellipse at center,transparent 55%,rgba(120,25,15,.55))}
+#fx-san{background:radial-gradient(ellipse at center,transparent 45%,rgba(10,18,30,.7))}
+#fx>div.on{opacity:1}
+#fx-hp.on{animation:pulse 1.3s ease-in-out infinite}
+#fx-san.crit{animation:flick 2.2s steps(1) infinite}
+@keyframes pulse{50%{opacity:.45}}
+@keyframes flick{0%,100%{opacity:1}30%{opacity:.7}33%{opacity:1}70%{opacity:.8}72%{opacity:1}}
 
 /* ---------- 모달: 탐험 일지 한 장 ---------- */
 #modal{position:fixed;inset:0;z-index:60;background:rgba(8,8,7,.72);display:flex;justify-content:center;align-items:center;padding:14px;animation:fade .2s}
@@ -105,5 +135,5 @@ body.low .stat.san{color:var(--rust)}
 .inv-row small{display:block;color:var(--ink2);font-size:14px;line-height:1.5}
 .log-row{padding:6px 0;border-bottom:1px dotted var(--ink2);font-size:15px;line-height:1.6}
 
-@media(max-width:600px){#sheet{padding:26px 22px 22px}#sheet p{font-size:16px}#status{padding:12px 12px}.stat{gap:8px}.stat>span{width:48px}.stat i{display:none}}
-@media(prefers-reduced-motion:reduce){.title-box,#modal,.bar.hit{animation:none}#map-img{transition:none}}
+@media(max-width:600px){#sheet{padding:26px 22px 22px}#sheet p{font-size:16px}#status{padding:12px 10px;gap:8px}.vital{gap:6px}.vital .ico{width:56px;height:56px}.vital b{font-size:26px}.bar b{width:6px}}
+@media(prefers-reduced-motion:reduce){.title-box,#modal,.beat,.eye,.ico,.vital .txt,.vital b,#fx>div{animation:none!important}#map-img{transition:none}}
