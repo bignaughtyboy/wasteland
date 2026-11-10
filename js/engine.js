@@ -99,8 +99,42 @@ function renderMap(){
 }
 
 // ---------- 모달 ----------
-function show(html){ $("#sheet").innerHTML = html; $("#modal").hidden = false; }
-function close(){ $("#modal").hidden = true; }
+let T = null, ADV = null;
+function show(html, cls = ""){ $("#sheet").className = cls; $("#sheet").innerHTML = html; $("#modal").hidden = false; }
+function close(){ clearInterval(T); ADV = null; $("#modal").hidden = true; }
+const esc = t => t.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const pages = t => t.split(/\n\n+/).filter(Boolean);
+function artStyle(a){
+  const z = a.z || 2.6, ar = D.mapAspect || 1.094, bh = 5/12, cl = v => Math.max(0, Math.min(100, v));
+  const px = cl((0.5 - a.x/100*z) / (1 - z) * 100), py = cl((bh/2 - a.y/100*z*ar) / (bh - z*ar) * 100);
+  return `background-image:url(${D.worldMap});background-size:${z*100}% auto;background-position:${px}% ${py}%`;
+}
+function placeOf(id){ for(const k in D.places){ const p = D.places[k].find(x => x.id===id); if(p) return p; } return null; }
+function artHTML(e, place){
+  const a = (e && e.art) || (place && place.art); if(!a) return "";
+  return `<div class="art" style="${artStyle(a)}">${place ? `<span class="cap">${place.name}</span>` : ""}</div>`;
+}
+// 장면: 위에 그림, 아래에 글. 클릭할 때마다 한 장면씩 넘어가고 마지막에 finish()가 선택지를 붙인다.
+function scene({ title, art = "", pgs, finish }){
+  clearInterval(T);
+  show(`${art}<h2>${title}</h2><div class="story" id="story"><p id="line"></p><span class="more" id="more">▾ 클릭하여 계속</span></div><div id="extra"></div>`, "scene");
+  const line = $("#line"), more = $("#more"), extra = $("#extra");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let i = 0, full = false;
+  const last = () => i >= pgs.length - 1;
+  function done(){ full = true; clearInterval(T); line.innerHTML = esc(pgs[i]); if(last()){ more.style.visibility = "hidden"; finish(extra); } else more.style.visibility = "visible"; }
+  function type(){
+    full = false; more.style.visibility = "hidden"; const t = pgs[i]; let n = 0;
+    if(reduce) return done();
+    clearInterval(T);
+    T = setInterval(() => { n++; line.innerHTML = esc(t.slice(0,n)) + `<span class="rest">${esc(t.slice(n))}</span>`; if(n >= t.length) done(); }, 24);
+  }
+  ADV = () => { if(!full) return done(); if(!last()){ i++; SND.play("click"); type(); } };
+  $("#story").onclick = ADV;
+  type();
+}
+
+
 function chips(r){
   const c = [], sg = v => (v>0 ? "+" : "") + v;
   if(r.hp)  c.push([`체력 ${sg(r.hp)}`, r.hp>0]);
@@ -124,21 +158,23 @@ function pickEvent(placeId){
 }
 function explore(place){
   S.seen[place.id] = 1;
-  const e = pickEvent(place.id);
+  const e = pickEvent(place.id), art = artHTML(e, place);
   if(!e){
     const f = D.fillers[Math.floor(Math.random()*D.fillers.length)];
-    return show(`<h2>${place.name}</h2><p>${f}</p><button class="choice" id="ok">돌아간다</button>`), $("#ok").onclick = () => { close(); render(); save(); };
+    return scene({ title: place.name, art, pgs: [f], finish: el => {
+      el.innerHTML = `<button class="choice" id="ok">돌아간다</button>`; $("#ok").onclick = () => { close(); render(); save(); }; } });
   }
-  const t = (S.san <= D.lowSan && e.textLow) ? e.textLow : e.text;
-  const btns = e.choices.map((c,i) => {
-    const can = ok(c.req);
-    return `<button class="choice" data-i="${i}" ${can?"":"disabled"}><b class="no">${i+1}</b><span><span class="t">${c.text}</span>${can?"":`<span class="hint">${need(c.req)}</span>`}</span></button>`;
-  }).join("");
   SND.play("open");
-  show(`<h2>${e.title}</h2><p>${t}</p>${btns}`);
-  document.querySelectorAll(".choice").forEach(b => b.onclick = () => choose(e, e.choices[+b.dataset.i]));
+  const t = (S.san <= D.lowSan && e.textLow) ? e.textLow : e.text;
+  scene({ title: e.title, art, pgs: pages(t), finish: el => {
+    el.innerHTML = e.choices.map((c,i) => {
+      const can = ok(c.req);
+      return `<button class="choice" data-i="${i}" ${can?"":"disabled"}><b class="no">${i+1}</b><span><span class="t">${c.text}</span>${can?"":`<span class="hint">${need(c.req)}</span>`}</span></button>`;
+    }).join("");
+    el.querySelectorAll(".choice").forEach(b => b.onclick = () => choose(e, e.choices[+b.dataset.i], art));
+  } });
 }
-function choose(e, c){
+function choose(e, c, art){
   S.done[e.id] = 1;
   let r = c.result;
   if(r.t === "__minjae__") r = minjaeResult();
@@ -151,8 +187,10 @@ function choose(e, c){
   else if(r.hp > 0 || r.san > 0) SND.play("heal"); else if((r.give||[]).length) SND.play("item");
   addLog(`[${e.title}] ${c.text}`);
   save();
-  show(`<h2>${e.title}</h2><p>${r.t}</p>${chips(r)}<button class="choice" id="next">계속</button>`);
-  $("#next").onclick = () => afterEvent(r.ending);
+  scene({ title: e.title, art, pgs: pages(r.t), finish: el => {
+    el.innerHTML = chips(r) + `<button class="choice" id="next">계속</button>`;
+    $("#next").onclick = () => afterEvent(r.ending);
+  } });
 }
 function minjaeResult(){
   S.flags.minjae_returned = 1;
@@ -175,8 +213,8 @@ function collapse(){
 function end(id){
   S.over = id; save(); render(); SND.play("ending");
   const e = D.endings[id];
-  show(`<h2>${e.title}</h2><p>${e.text}</p><button class="choice" id="again">처음부터 다시 시작</button>`);
-  $("#again").onclick = restart;
+  scene({ title: e.title, pgs: pages(e.text), finish: el => {
+    el.innerHTML = `<button class="choice" id="again">처음부터 다시 시작</button>`; $("#again").onclick = restart; } });
 }
 function restart(){ S = fresh(); save(); close(); showTitle(); }
 
@@ -222,6 +260,7 @@ $("#t-continue").onclick = () => { S = load() || fresh(); enter(); };
 $("#btn-title").onclick = () => { save(); showTitle(); };
 
 document.addEventListener("keydown", e => {
+  if(!$("#modal").hidden && ADV && (e.key === " " || e.key === "Enter") && !e.target.closest("button")){ e.preventDefault(); ADV(); return; }
   if($("#modal").hidden || e.ctrlKey || e.metaKey || e.altKey || !/^[1-9]$/.test(e.key)) return;
   const b = document.querySelectorAll("#sheet .choice[data-i]")[+e.key - 1];
   if(b && !b.disabled) b.click();
