@@ -67,10 +67,16 @@ function render(){
   document.body.classList.toggle("low", S.san <= D.lowSan);
   renderMap();
 }
+const svg = d => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 const ICON = {
-  pin:  '<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>',
-  lock: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="1"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
-  dot:  '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/></svg>'
+  pin:      svg('<path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/>'),
+  lock:     svg('<rect x="5" y="11" width="14" height="10" rx="1"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
+  dot:      svg('<circle cx="12" cy="12" r="5"/>'),
+  building: svg('<rect x="6" y="3" width="12" height="18"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/>'),
+  store:    svg('<path d="M4 9l2-5h12l2 5M5 9v11h14V9M9 20v-6h6v6"/>'),
+  house:    svg('<path d="M3 12l9-8 9 8M6 10v10h12V10M10 20v-6h4v6"/>'),
+  hospital: svg('<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M12 8v8M8 12h8"/>'),
+  subway:   svg('<rect x="6" y="3" width="12" height="14" rx="3"/><path d="M6 11h12M9 14h.01M15 14h.01M9 20l-2 2M15 20l2 2"/>')
 };
 function zoom(reg){
   const img = $("#map-img");
@@ -94,8 +100,10 @@ function renderMap(){
   (reg ? D.places[reg.id] : D.regions).forEach(n => {
     const open = n.unlocked || S.unlocked[n.id], locked = !reg && !open;
     const b = document.createElement("button");
-    b.className = "node" + (locked ? " locked" : "") + (S.seen[n.id] ? " seen" : "") + (!reg && S.unlocked[n.id] && !S.seen[n.id] ? " fresh" : "");
-    b.innerHTML = `<span class="dia">${locked ? ICON.lock : reg ? ICON.dot : ICON.pin}</span><span class="plate">${n.name}</span>`;
+    b.className = "node " + (reg ? "place" : "region") + (locked ? " locked" : "") + (S.seen[n.id] ? " seen" : "") + (!reg && S.unlocked[n.id] && !S.seen[n.id] ? " fresh" : "");
+    const pl = D.places[n.id];
+    const sub = reg ? "" : locked ? "잠김" : (S.unlocked[n.id] && !S.seen[n.id]) ? "새 지역" : pl ? `탐험 ${pl.filter(x => S.seen[x.id]).length}/${pl.length}` : "준비 중";
+    b.innerHTML = `<span class="sign"><span class="ic">${locked ? ICON.lock : ICON[n.icon || (reg ? "dot" : "pin")]}</span><span class="lb"><span class="nm">${n.name}</span>${sub ? `<span class="stt">${sub}</span>` : ""}</span></span>`;
     b.style.left = n.x + "%"; b.style.top = n.y + "%";
     b.disabled = locked;
     b.setAttribute("aria-label", locked ? n.name + " (잠김)" : n.name);
@@ -273,6 +281,9 @@ document.addEventListener("keydown", e => {
   const b = document.querySelectorAll("#sheet .choice[data-i]")[+e.key - 1];
   if(b && !b.disabled) b.click();
 });
+
+// 텍스트 복사·선택·드래그·우클릭 방지 (브라우저 기능 차단일 뿐 완전한 보호는 아님)
+["copy","cut","contextmenu","selectstart","dragstart"].forEach(t => document.addEventListener(t, e => e.preventDefault()));
 
 render();
 showTitle();
