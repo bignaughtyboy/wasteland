@@ -51,6 +51,8 @@ header nav button:hover:not(:disabled){background:none;color:#fff;border-bottom-
 .node:not(.locked){transition:transform .15s}
 .node:not(.locked):hover{transform:translate(-50%,-25px)}
 .node:not(.locked):hover .dia{background:#c6d3de}
+.node.fresh .dia{animation:glow 1.4s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 0 0 7px rgba(169,185,198,.35),0 2px 5px rgba(0,0,0,.45)}}
 .node.seen .plate::after{content:" ✓";font-weight:400}
 .node.locked,.node:disabled{cursor:not-allowed;opacity:1}
 #btn-back{position:absolute;bottom:12px;left:12px;background:#e6e3d9;z-index:4;margin:0;box-shadow:0 2px 5px rgba(0,0,0,.4)}
@@ -151,4 +153,4 @@ body.low .art{filter:contrast(1.3) brightness(.82);animation:flick 4s steps(1) i
 .log-row{padding:6px 0;border-bottom:1px dotted var(--ink2);font-size:15px;line-height:1.6}
 
 @media(max-width:600px){#sheet{padding:26px 22px 22px}#sheet p{font-size:16px}#status{padding:12px 10px;gap:8px}.vital{gap:6px}.vital .ico{width:56px;height:56px}.vital b{font-size:26px}.bar b{width:6px}}
-@media(prefers-reduced-motion:reduce){.title-box,#modal,.more,#extra,.beat,.eye,.ico,.vital .txt,.vital b,#fx>div{animation:none!important}#map-img{transition:none}}
+@media(prefers-reduced-motion:reduce){.title-box,#modal,.more,#extra,.node.fresh .dia,.beat,.eye,.ico,.vital .txt,.vital b,#fx>div{animation:none!important}#map-img{transition:none}}
