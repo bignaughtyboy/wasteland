@@ -30,15 +30,39 @@ function need(r){
 
 // ---------- 화면 ----------
 let prev = null;
-function flash(sel){ const el = $(sel); el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit"); }
+function flash(sel, cls){ const el = $(sel); el.classList.remove("hit","gain"); void el.getBoundingClientRect(); el.classList.add(cls); }
+// 정신력이 떨어질수록 눈 위에 늘어나는 낙서(고정 시드)
+(function(){
+  let r = 7; const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647, g = $("#scribbles");
+  for(let i=0;i<MAX;i++){
+    let d = "M" + (6+rnd()*52).toFixed(1) + " " + (14+rnd()*36).toFixed(1);
+    for(let k=0;k<4;k++) d += " L" + (6+rnd()*52).toFixed(1) + " " + (14+rnd()*36).toFixed(1);
+    g.insertAdjacentHTML("beforeend", `<path d="${d}" fill="none" stroke="#2b2a27" stroke-width="1.4" stroke-opacity=".75" stroke-linecap="round" style="display:none"/>`);
+  }
+})();
+function stateOf(list, v){ const s = list && list.find(x => v>=x[0] && v<=x[1]); return s ? s[2] : ""; }
 function render(){
   const bar = (v,id) => { $(id).innerHTML = Array.from({length:MAX},(_,i)=>`<b class="${i<v?'on':''}"></b>`).join(""); };
   bar(S.hp,"#hp-bar"); bar(S.san,"#san-bar");
-  if(prev){ if(S.hp < prev.hp) flash("#hp-bar"); if(S.san < prev.san) flash("#san-bar"); }
+  if(prev){
+    if(S.hp < prev.hp) flash("#v-hp .ico","hit"); else if(S.hp > prev.hp) flash("#v-hp .ico","gain");
+    if(S.san < prev.san) flash("#v-san .ico","hit"); else if(S.san > prev.san) flash("#v-san .ico","gain");
+  }
   prev = { hp:S.hp, san:S.san };
-  $("#hp-num").textContent = `${S.hp}/${MAX}`; $("#san-num").textContent = `${S.san}/${MAX}`;
-  const st = D.sanStates.find(s => S.san>=s[0] && S.san<=s[1]);
-  $("#san-state").textContent = st ? st[2] : "";
+  $("#hp-num").innerHTML = `${S.hp}<small>/${MAX}</small>`; $("#san-num").innerHTML = `${S.san}<small>/${MAX}</small>`;
+  $("#hp-state").textContent = stateOf(D.hpStates, S.hp); $("#san-state").textContent = stateOf(D.sanStates, S.san);
+  // 심장: 피가 차오르는 높이 / 박동 속도
+  $("#hp-rect").setAttribute("y", (56 - 46*S.hp/MAX).toFixed(1));
+  $("#v-hp .ico").style.setProperty("--beat", (0.5 + S.hp*0.09).toFixed(2) + "s");
+  // 눈: 동공 확장 + 낙서 증가
+  $("#pupil").setAttribute("r", (4 + (MAX-S.san)*.75).toFixed(1));
+  [...$("#scribbles").children].forEach((p,i) => p.style.display = i < MAX-S.san ? "" : "none");
+  const st = $("#status").classList;
+  st.toggle("hp-crit", S.hp <= 3); st.toggle("hp-dead", S.hp <= 0);
+  st.toggle("san-low", S.san <= D.lowSan); st.toggle("san-crit", S.san <= 2);
+  $("#fx-hp").classList.toggle("on", S.hp <= 3 && S.hp > 0);
+  $("#fx-san").classList.toggle("on", S.san <= D.lowSan);
+  $("#fx-san").classList.toggle("crit", S.san <= 2);
   document.body.classList.toggle("low", S.san <= D.lowSan);
   renderMap();
 }
