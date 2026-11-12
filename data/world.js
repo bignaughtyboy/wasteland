@@ -3,7 +3,7 @@
 window.GAME_DATA = {
   bagSlots: 20,   // 가방 격자 칸 수 (종류가 더 많으면 자동으로 늘어남)
   mapAspect: 1312 / 1199,   // 지도 이미지 세로/가로 비율
-  worldMap: "assets/world/main_map01.jpg",   // 세계 지도 이미지 (교체 가능)
+  worldMap: "assets/world/main_map_01.jpg",   // 세계 지도 이미지 (교체 가능)
   regions: [
     // x,y: 세계 지도 위 마커 위치(%) / zoom: 지역 화면에서 지도를 확대할 배율
     { id: "old",  name: "구도심",   x: 25, y: 20, unlocked: true, zoom: 2.4 },
