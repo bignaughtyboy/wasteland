@@ -312,7 +312,7 @@ function showBag(){
 }
 $("#btn-inv").onclick = showBag;
 function showSettings(){
-  show(`<h2>설정</h2><div class="inv-row"><div>사운드<small>효과음을 켜거나 끕니다.</small></div><button id="s-sound" aria-pressed="${SND.on}">${SND.on ? "켜짐" : "꺼짐"}</button></div><br><button class="choice" id="x">닫기</button>`);
+  show(`<h2>설정</h2><div class="inv-row"><div>사운드<small>효과음을 켜거나 끕니다.</small></div><button id="s-sound" class="switch" role="switch" aria-checked="${SND.on}" aria-label="사운드"><span class="lbl">${SND.on ? "ON" : "OFF"}</span><span class="track"><span class="knob"></span></span></button></div><br><button class="choice" id="x">닫기</button>`);
   $("#x").onclick = close;
   $("#s-sound").onclick = () => { SND.set(!SND.on); showSettings(); };
 }
