@@ -235,17 +235,82 @@ function end(id){
 function restart(){ S = fresh(); save(); close(); showTitle(); }
 
 // ---------- 가방 / 기록 ----------
-$("#btn-inv").onclick = () => {
-  const rows = S.inv.length ? S.inv.map((id,i) => { const it = D.items[id];
-    return `<div class="inv-row"><div>${it.name}<small>${it.desc}</small></div>${it.use?`<button data-i="${i}">사용</button>`:""}</div>`; }).join("") : "<p>가방이 비어 있다.</p>";
-  show(`<h2>가방</h2>${rows}<br><button class="choice" id="x">닫기</button>`);
-  $("#x").onclick = close;
-  document.querySelectorAll(".inv-row button").forEach(b => b.onclick = () => {
-    const id = S.inv[+b.dataset.i], u = D.items[id].use;
-    if(u.hp) S.hp = clamp(S.hp+u.hp); if(u.san) S.san = clamp(S.san+u.san);
-    S.inv.splice(+b.dataset.i,1); addLog(`${iname(id)} 사용`); save(); render(); $("#btn-inv").onclick();
-  });
+// ---------- 가방: 격자 + 아이템 이미지 ----------
+// 아이템 이미지는 data/world.js의 items에 img:"assets/items/파일.png"를 지정하면 그 이미지를 쓰고, 없으면 아래 스케치 아이콘을 씁니다.
+const A = d => `<svg viewBox="0 0 48 48" aria-hidden="true"><g filter="url(#rough)">${d}</g></svg>`;
+const ITEM_ART = {
+  bandage:    A('<circle cx="22" cy="26" r="15"/><circle cx="22" cy="26" r="6"/><path d="M34 34l9 6M10 22l24 8"/>'),
+  medicine:   A('<rect x="17" y="6" width="14" height="6"/><path class="f" d="M19 12v5l-6 8v16h22V25l-6-8v-5z"/><rect x="17" y="27" width="14" height="9"/><path d="M24 29v5M21.5 31.5h5"/>'),
+  flashlight: A('<path class="f" d="M5 14l9 4v12l-9 4z"/><rect x="14" y="18" width="26" height="12" rx="2"/><path d="M20 18v12M5 6l4 5M2 24h5M5 42l4-5"/>'),
+  key:        A('<circle cx="13" cy="24" r="8"/><circle cx="13" cy="24" r="2.5"/><path d="M21 24h22M36 24v8M42 24v6"/>'),
+  crowbar:    A('<path d="M14 40L38 10"/><path d="M38 10c3-4 9-3 8 2"/><path d="M14 40c-3 4-9 3-8-2"/><path d="M11 36l5 4"/>'),
+  cloth:      A('<path class="f" d="M7 12h34l-3 8 3 8-4 8H11l-3-8 3-8z"/><path d="M15 12l2 24M24 12v24M33 12l-2 24"/>'),
+  scrap:      A('<path class="f" d="M8 30l9-17 15 4 9 15-11 11-19-3z"/><circle cx="24" cy="27" r="4"/><path d="M17 13l6 9M32 17l-8 10"/>'),
+  can:        A('<ellipse cx="24" cy="12" rx="13" ry="4.5"/><path class="f" d="M11 12v24c0 2.5 5.8 4.5 13 4.5s13-2 13-4.5V12c0 2.5-5.8 4.5-13 4.5S11 14.500 11 12z"/><path d="M11 22c0 2.500 5.800 4.500 13 4.500S37 24.500 37 22M11 31c0 2.500 5.800 4.500 13 4.500S37 33.500 37 31"/>'),
+  photo:      A('<rect x="7" y="9" width="34" height="30"/><rect x="12" y="14" width="24" height="19"/><circle cx="20" cy="21" r="3"/><path d="M12 33l9-7 6 4 5-5 4 8"/>'),
+  note:       A('<path class="f" d="M11 5h19l9 9v29H11z"/><path d="M30 5v9h9M16 22h18M16 28h18M16 34h11"/>'),
+  unknown:    A('<path class="f" d="M7 17l17-9 17 9v19l-17 9-17-9z"/><path d="M7 17l17 9 17-9M24 26v19"/>')
 };
+const itemArt = id => { const it = D.items[id]; return it.img ? `<img src="${it.img}" alt="" draggable="false">` : (ITEM_ART[id] || ITEM_ART.unknown); };
+let invSel = null;
+function showInventory(){
+  const groups = [];
+  S.inv.forEach(id => { const g = groups.find(x => x.id === id); g ? g.n++ : groups.push({ id, n: 1 }); });
+  if(!groups.some(g => g.id === invSel)) invSel = groups.length ? groups[0].id : null;
+  const total = Math.max(D.invSlots || 20, Math.ceil(groups.length / 5) * 5);
+  let cells = "";
+  for(let i = 0; i < total; i++){
+    const g = groups[i];
+    cells += g
+      ? `<button class="slot${g.id === invSel ? " on" : ""}" data-id="${g.id}" aria-label="${iname(g.id)} ${g.n}개"><span class="art">${itemArt(g.id)}</span>${g.n > 1 ? `<b class="cnt">×${g.n}</b>` : ""}</button>`
+      : `<div class="slot empty"></div>`;
+  }
+  const it = invSel && D.items[invSel], cur = invSel && groups.find(g => g.id === invSel);
+  const detail = it
+    ? `<div class="detail"><div class="dtxt"><strong>${it.name}${cur.n > 1 ? ` ×${cur.n}` : ""}</strong><span>${it.desc}</span></div>${it.use ? `<button id="use">사용</button>` : ""}</div>`
+    : `<div class="detail muted"><span>가방이 비어 있다.</span></div>`;
+  show(`<h2>가방</h2><div class="grid">${cells}</div>${detail}<button class="choice" id="x">닫기</button>`, "inv");
+  $("#x").onclick = close;
+  document.querySelectorAll(".slot[data-id]").forEach(b => b.onclick = () => { invSel = b.dataset.id; SND.play("click"); showInventory(); });
+  const use = $("#use");
+  if(use) use.onclick = () => {
+    const u = D.items[invSel].use;
+    if(u.hp) S.hp = clamp(S.hp + u.hp); if(u.san) S.san = clamp(S.san + u.san);
+    S.inv.splice(S.inv.indexOf(invSel), 1);
+    addLog(`${iname(invSel)} 사용`); SND.play("heal"); save(); render(); showInventory();
+  };
+}
+function itemIcon(id){
+  const it = D.items[id];
+  if(it.img) return `<img src="${it.img}" alt="" draggable="false">`;
+  return `<svg viewBox="0 0 32 32" aria-hidden="true">${it.icon || '<rect x="7" y="7" width="18" height="18" rx="2"/><path d="M13 14h6M13 18h4"/>'}</svg>`;
+}
+let bagSel = null;
+function showBag(){
+  const stacks = [];
+  S.inv.forEach(id => { const st = stacks.find(x => x.id === id); st ? st.n++ : stacks.push({ id, n:1 }); });
+  if(!stacks.find(x => x.id === bagSel)) bagSel = stacks.length ? stacks[0].id : null;
+  const total = Math.max(D.bagSlots || 20, stacks.length);
+  const slots = Array.from({ length: total }, (_, i) => {
+    const st = stacks[i];
+    return st ? `<button class="slot full${st.id===bagSel ? " sel" : ""}${D.items[st.id].use ? " usable" : ""}" data-id="${st.id}" aria-label="${iname(st.id)}">${itemIcon(st.id)}${st.n>1 ? `<b class="qty">×${st.n}</b>` : ""}</button>` : `<div class="slot"></div>`;
+  }).join("");
+  const it = bagSel && D.items[bagSel];
+  const detail = it
+    ? `<div class="detail"><div><strong>${it.name}</strong><small>${it.desc}</small></div>${it.use ? `<button id="use">사용</button>` : ""}</div>`
+    : `<div class="detail"><small>가방이 비어 있다. 탐험에서 쓸 만한 물건을 찾아보자.</small></div>`;
+  show(`<h2>가방 <small class="cnt">${S.inv.length}개</small></h2><div class="grid">${slots}</div>${detail}<button class="choice" id="x">닫기</button>`, "bag");
+  $("#x").onclick = close;
+  document.querySelectorAll(".slot.full").forEach(b => b.onclick = () => { bagSel = b.dataset.id; showBag(); });
+  const use = $("#use");
+  if(use) use.onclick = () => {
+    const u = D.items[bagSel].use, k = S.inv.indexOf(bagSel);
+    if(k < 0) return;
+    if(u.hp) S.hp = clamp(S.hp + u.hp); if(u.san) S.san = clamp(S.san + u.san);
+    S.inv.splice(k, 1); addLog(`${iname(bagSel)} 사용`); save(); render(); showBag();
+  };
+}
+$("#btn-inv").onclick = showBag;
 function showSettings(){
   show(`<h2>설정</h2><div class="inv-row"><div>사운드<small>효과음을 켜거나 끕니다.</small></div><button id="s-sound" aria-pressed="${SND.on}">${SND.on ? "켜짐" : "꺼짐"}</button></div><br><button class="choice" id="x">닫기</button>`);
   $("#x").onclick = close;
