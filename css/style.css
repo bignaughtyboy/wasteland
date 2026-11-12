@@ -17,7 +17,7 @@ button:focus-visible{outline:2px dashed currentColor;outline-offset:3px}
 
 /* ---------- 타이틀 ---------- */
 #title{position:fixed;inset:0;z-index:50;isolation:isolate;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;color:#ecebe6}
-#title::before{content:"";position:absolute;inset:0;z-index:-2;background:url(../assets/world-map.jpg) center/cover;filter:grayscale(1) contrast(1.1) brightness(.5) blur(1.5px)}
+#title::before{content:"";position:absolute;inset:0;z-index:-2;background:url(../assets/world/main_map_01.jpg) center/cover;filter:grayscale(1) contrast(1.1) brightness(.5) blur(1.5px)}
 #title::after{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at center,rgba(20,20,18,.15),rgba(10,10,9,.88))}
 #title.hide{display:none}
 .title-box{animation:rise 1.6s ease both}
