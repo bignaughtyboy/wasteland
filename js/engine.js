@@ -88,7 +88,7 @@ function zoom(reg){
 }
 function soon(n){
   S.seen[n.id] = 1; save(); renderMap();
-  show(`<h2>${n.name}</h2><p>터널 끝에서 새어 나온 바람에 기름과 쇳내가 섞여 있다. 길은 열렸지만, 이 지역의 탐험은 아직 준비되지 않았다.\n\n(프로토타입은 구도심까지만 플레이할 수 있습니다.)</p><button class="choice" id="x">돌아간다</button>`);
+  show(`<span class="kick">UNCHARTED</span><h2>${n.name}</h2><p>터널 끝에서 새어 나온 바람에 기름과 쇳내가 섞여 있다. 길은 열렸지만, 이 지역의 탐험은 아직 준비되지 않았다.\n\n(프로토타입은 구도심까지만 플레이할 수 있습니다.)</p><button class="choice" id="x">돌아간다</button>`);
   $("#x").onclick = close;
 }
 function renderMap(){
@@ -123,15 +123,17 @@ function artStyle(a){
   const px = cl((0.5 - a.x/100*z) / (1 - z) * 100), py = cl((bh/2 - a.y/100*z*ar) / (bh - z*ar) * 100);
   return `background-image:url(${D.worldMap});background-size:${z*100}% auto;background-position:${px}% ${py}%`;
 }
+function regionName(place){ for(const k in D.places) if(D.places[k].includes(place)){ const r = D.regions.find(x => x.id===k); return r ? r.name : ""; } return ""; }
+const noteNo = () => "FIELD NOTE · No." + String(Object.keys(S.done).length + 1).padStart(2,"0");
 function placeOf(id){ for(const k in D.places){ const p = D.places[k].find(x => x.id===id); if(p) return p; } return null; }
 function artHTML(e, place){
   const a = (e && e.art) || (place && place.art); if(!a) return "";
-  return `<div class="art" style="${artStyle(a)}">${place ? `<span class="cap">${place.name}</span>` : ""}</div>`;
+  return `<figure class="photo"><div class="art" style="${artStyle(a)}"></div>${place ? `<figcaption><span>— ${place.name}</span><span>${regionName(place)}</span></figcaption>` : ""}</figure>`;
 }
 // 장면: 위에 그림, 아래에 글. 클릭할 때마다 한 장면씩 넘어가고 마지막에 finish()가 선택지를 붙인다.
-function scene({ title, art = "", pgs, finish }){
+function scene({ title, art = "", kick = "", pgs, finish }){
   clearInterval(T);
-  show(`${art}<h2>${title}</h2><div class="story" id="story"><p id="line"></p><span class="more" id="more">▾ 클릭하여 계속</span></div><div id="extra"></div>`, "scene");
+  show(`${art}${kick ? `<span class="kick">${kick}</span>` : ""}<h2>${title}</h2><div class="story" id="story"><p id="line"></p><span class="more" id="more">▾ 클릭하여 계속</span></div><div id="extra"></div>`, "scene");
   const line = $("#line"), more = $("#more"), extra = $("#extra");
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let i = 0, full = false;
@@ -176,20 +178,21 @@ function explore(place){
   const e = pickEvent(place.id), art = artHTML(e, place);
   if(!e){
     const f = D.fillers[Math.floor(Math.random()*D.fillers.length)];
-    return scene({ title: place.name, art, pgs: [f], finish: el => {
+    return scene({ title: place.name, art, kick: "FIELD NOTE · 수색", pgs: [f], finish: el => {
       el.innerHTML = `<button class="choice" id="ok">돌아간다</button>`; $("#ok").onclick = () => { close(); render(); save(); }; } });
   }
   SND.play("open");
   const t = (S.san <= D.lowSan && e.textLow) ? e.textLow : e.text;
-  scene({ title: e.title, art, pgs: pages(t), finish: el => {
+  scene({ title: e.title, art, kick: noteNo(), pgs: pages(t), finish: el => {
     el.innerHTML = e.choices.map((c,i) => {
       const can = ok(c.req);
-      return `<button class="choice" data-i="${i}" ${can?"":"disabled"}><b class="no">${i+1}</b><span><span class="t">${c.text}</span>${can?"":`<span class="hint">${need(c.req)}</span>`}</span></button>`;
+      return `<button class="choice" data-i="${i}" ${can?"":"disabled"}><b class="no">${i+1}</b><span><span class="t">${c.text}</span>${can?"":`<span class="hint">${need(c.req)}</span>`}</span><span class="go" aria-hidden="true">→</span></button>`;
     }).join("");
     el.querySelectorAll(".choice").forEach(b => b.onclick = () => choose(e, e.choices[+b.dataset.i], art));
   } });
 }
 function choose(e, c, art){
+  const kick = noteNo().replace("FIELD NOTE", "RESULT");
   S.done[e.id] = 1;
   let r = c.result;
   if(r.t === "__minjae__") r = minjaeResult();
@@ -203,7 +206,7 @@ function choose(e, c, art){
   else if(r.hp > 0 || r.san > 0) SND.play("heal"); else if((r.give||[]).length) SND.play("item");
   addLog(`[${e.title}] ${c.text}`);
   save();
-  scene({ title: e.title, art, pgs: pages(r.t), finish: el => {
+  scene({ title: e.title, art, kick, pgs: pages(r.t), finish: el => {
     el.innerHTML = chips(r) + `<button class="choice" id="next">계속</button>`;
     $("#next").onclick = () => afterEvent(r.ending);
   } });
@@ -223,13 +226,13 @@ function afterEvent(ending){
 function collapse(){
   S.hp = clamp(S.hp - 2); S.san = 3; addLog("[정신 붕괴] 의식을 잃었다."); save();
   if(S.hp <= 0) return end("death");
-  show(`<h2>정신 붕괴</h2><p>귀가 울린다. 벽의 얼룩이 사람 얼굴처럼 보이고, 숨소리가 낯선 곳에서 들려온다.\n\n정신을 차렸을 때는 한참이 지나 있었다. 무릎이 까져 있다.</p><div class="chips"><span>체력 -2</span><span>정신력 3으로 회복</span></div><button class="choice" id="ok">일어난다</button>`);
+  show(`<span class="kick">BLACKOUT</span><h2>정신 붕괴</h2><p>귀가 울린다. 벽의 얼룩이 사람 얼굴처럼 보이고, 숨소리가 낯선 곳에서 들려온다.\n\n정신을 차렸을 때는 한참이 지나 있었다. 무릎이 까져 있다.</p><div class="chips"><span>체력 -2</span><span>정신력 3으로 회복</span></div><button class="choice" id="ok">일어난다</button>`);
   $("#ok").onclick = () => { close(); render(); };
 }
 function end(id){
   S.over = id; save(); render(); SND.play("ending");
   const e = D.endings[id];
-  scene({ title: e.title, pgs: pages(e.text), finish: el => {
+  scene({ title: e.title, kick: "ENDING", pgs: pages(e.text), finish: el => {
     el.innerHTML = `<button class="choice" id="again">처음부터 다시 시작</button>`; $("#again").onclick = restart; } });
 }
 function restart(){ S = fresh(); save(); close(); showTitle(); }
@@ -252,54 +255,23 @@ const ITEM_ART = {
   unknown:    A('<path class="f" d="M7 17l17-9 17 9v19l-17 9-17-9z"/><path d="M7 17l17 9 17-9M24 26v19"/>')
 };
 const itemArt = id => { const it = D.items[id]; return it.img ? `<img src="${it.img}" alt="" draggable="false">` : (ITEM_ART[id] || ITEM_ART.unknown); };
-let invSel = null;
-function showInventory(){
-  const groups = [];
-  S.inv.forEach(id => { const g = groups.find(x => x.id === id); g ? g.n++ : groups.push({ id, n: 1 }); });
-  if(!groups.some(g => g.id === invSel)) invSel = groups.length ? groups[0].id : null;
-  const total = Math.max(D.invSlots || 20, Math.ceil(groups.length / 5) * 5);
-  let cells = "";
-  for(let i = 0; i < total; i++){
-    const g = groups[i];
-    cells += g
-      ? `<button class="slot${g.id === invSel ? " on" : ""}" data-id="${g.id}" aria-label="${iname(g.id)} ${g.n}개"><span class="art">${itemArt(g.id)}</span>${g.n > 1 ? `<b class="cnt">×${g.n}</b>` : ""}</button>`
-      : `<div class="slot empty"></div>`;
-  }
-  const it = invSel && D.items[invSel], cur = invSel && groups.find(g => g.id === invSel);
-  const detail = it
-    ? `<div class="detail"><div class="dtxt"><strong>${it.name}${cur.n > 1 ? ` ×${cur.n}` : ""}</strong><span>${it.desc}</span></div>${it.use ? `<button id="use">사용</button>` : ""}</div>`
-    : `<div class="detail muted"><span>가방이 비어 있다.</span></div>`;
-  show(`<h2>가방</h2><div class="grid">${cells}</div>${detail}<button class="choice" id="x">닫기</button>`, "inv");
-  $("#x").onclick = close;
-  document.querySelectorAll(".slot[data-id]").forEach(b => b.onclick = () => { invSel = b.dataset.id; SND.play("click"); showInventory(); });
-  const use = $("#use");
-  if(use) use.onclick = () => {
-    const u = D.items[invSel].use;
-    if(u.hp) S.hp = clamp(S.hp + u.hp); if(u.san) S.san = clamp(S.san + u.san);
-    S.inv.splice(S.inv.indexOf(invSel), 1);
-    addLog(`${iname(invSel)} 사용`); SND.play("heal"); save(); render(); showInventory();
-  };
-}
-function itemIcon(id){
-  const it = D.items[id];
-  if(it.img) return `<img src="${it.img}" alt="" draggable="false">`;
-  return `<svg viewBox="0 0 32 32" aria-hidden="true">${it.icon || '<rect x="7" y="7" width="18" height="18" rx="2"/><path d="M13 14h6M13 18h4"/>'}</svg>`;
-}
 let bagSel = null;
+const effText = u => [u.hp && `체력 +${u.hp}`, u.san && `정신력 +${u.san}`].filter(Boolean).join(" · ");
 function showBag(){
   const stacks = [];
   S.inv.forEach(id => { const st = stacks.find(x => x.id === id); st ? st.n++ : stacks.push({ id, n:1 }); });
   if(!stacks.find(x => x.id === bagSel)) bagSel = stacks.length ? stacks[0].id : null;
-  const total = Math.max(D.bagSlots || 20, stacks.length);
+  const cap = D.bagSlots || 20, total = Math.max(cap, Math.ceil(stacks.length / 5) * 5);
   const slots = Array.from({ length: total }, (_, i) => {
     const st = stacks[i];
-    return st ? `<button class="slot full${st.id===bagSel ? " sel" : ""}${D.items[st.id].use ? " usable" : ""}" data-id="${st.id}" aria-label="${iname(st.id)}">${itemIcon(st.id)}${st.n>1 ? `<b class="qty">×${st.n}</b>` : ""}</button>` : `<div class="slot"></div>`;
+    return st ? `<button class="slot full${st.id===bagSel ? " sel" : ""}${D.items[st.id].use ? " usable" : ""}" data-id="${st.id}" aria-label="${iname(st.id)} ${st.n}개">${itemArt(st.id)}${st.n>1 ? `<b class="qty">×${st.n}</b>` : ""}</button>` : `<div class="slot"></div>`;
   }).join("");
-  const it = bagSel && D.items[bagSel];
-  const detail = it
-    ? `<div class="detail"><div><strong>${it.name}</strong><small>${it.desc}</small></div>${it.use ? `<button id="use">사용</button>` : ""}</div>`
-    : `<div class="detail"><small>가방이 비어 있다. 탐험에서 쓸 만한 물건을 찾아보자.</small></div>`;
-  show(`<h2>가방 <small class="cnt">${S.inv.length}개</small></h2><div class="grid">${slots}</div>${detail}<button class="choice" id="x">닫기</button>`, "bag");
+  const it = bagSel && D.items[bagSel], cur = stacks.find(x => x.id === bagSel);
+  const tag = it
+    ? `<div class="tag"><span class="big">${itemArt(bagSel)}</span><div class="tx"><strong>${it.name}${cur.n > 1 ? ` ×${cur.n}` : ""}</strong><small>${it.desc}</small>${it.use ? `<span class="eff">${effText(it.use)}</span>` : ""}</div>${it.use ? `<button id="use">사용</button>` : ""}</div>`
+    : `<div class="tag empty">가방이 비어 있다. 탐험에서 쓸 만한 물건을 찾아보자.</div>`;
+  const pct = Math.min(100, stacks.length / cap * 100);
+  show(`<span class="kick">BACKPACK</span><h2>가방 <span class="cap-meter">${stacks.length} / ${cap}칸<i><b style="width:${pct}%"></b></i></span></h2><div class="grid">${slots}</div>${tag}<button class="choice" id="x">닫기</button>`, "bag");
   $("#x").onclick = close;
   document.querySelectorAll(".slot.full").forEach(b => b.onclick = () => { bagSel = b.dataset.id; showBag(); });
   const use = $("#use");
@@ -307,22 +279,36 @@ function showBag(){
     const u = D.items[bagSel].use, k = S.inv.indexOf(bagSel);
     if(k < 0) return;
     if(u.hp) S.hp = clamp(S.hp + u.hp); if(u.san) S.san = clamp(S.san + u.san);
-    S.inv.splice(k, 1); addLog(`${iname(bagSel)} 사용`); save(); render(); showBag();
+    S.inv.splice(k, 1); addLog(`${iname(bagSel)} 사용`); SND.play("heal"); save(); render(); showBag();
   };
 }
 $("#btn-inv").onclick = showBag;
+const KIT = {
+  sound: svg('<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>'),
+  save:  svg('<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3M8 21v-7h8v7"/>')
+};
 function showSettings(){
-  show(`<h2>설정</h2><div class="inv-row"><div>사운드<small>효과음을 켜거나 끕니다.</small></div><button id="s-sound" aria-pressed="${SND.on}">${SND.on ? "켜짐" : "꺼짐"}</button></div><br><button class="choice" id="x">닫기</button>`);
+  show(`<span class="kick">FIELD KIT</span><h2>설정</h2><div class="kit">
+    <div class="kit-row"><div class="k">${KIT.sound}<div><b>효과음</b><small>탐험 중 들리는 소리를 켜거나 끕니다.</small></div></div><button class="toggle" id="s-sound" aria-pressed="${SND.on}" aria-label="효과음"></button></div>
+    <div class="kit-row"><div class="k">${KIT.save}<div><b>기록 보관</b><small>진행 상황은 선택할 때마다 자동으로 저장됩니다.</small></div></div><span class="val">AUTO</span></div>
+  </div><button class="choice" id="x">닫기</button>`, "settings");
   $("#x").onclick = close;
   $("#s-sound").onclick = () => { SND.set(!SND.on); showSettings(); };
 }
 $("#btn-settings").onclick = showSettings;
 $("#t-settings").onclick = showSettings;
 document.addEventListener("click", e => { if(e.target.closest("button:not(:disabled)")) SND.play("click"); });
-$("#btn-log").onclick = () => {
-  show(`<h2>기록</h2>${S.log.length ? S.log.map(l=>`<div class="log-row">${l}</div>`).join("") : "<p>아직 기록이 없다.</p>"}<br><button class="choice" id="x">닫기</button>`);
+function showLog(){
+  const n = S.log.length;
+  const rows = S.log.map((l, i) => {
+    const m = /^\[(.+?)\]\s*(.*)$/.exec(l), cls = !m ? "sys" : m[1] === "정신 붕괴" ? "bad" : "";
+    const body = m ? `<b>${m[1]}</b>${m[2] ? `<span>${m[2]}</span>` : ""}` : `<b>${l}</b>`;
+    return `<li class="entry ${cls}" style="animation-delay:${Math.min(i, 12) * 30}ms"><span class="n">${String(n - i).padStart(2, "0")}</span><div class="bd">${body}</div></li>`;
+  }).join("");
+  show(`<span class="kick">JOURNAL</span><h2>기록</h2>${n ? `<ol class="entries">${rows}</ol>` : `<p class="empty-note">아직 아무것도 적혀 있지 않다.\n첫 페이지는 탐험을 시작하면 채워진다.</p>`}<button class="choice" id="x">닫기</button>`, "log");
   $("#x").onclick = close;
-};
+}
+$("#btn-log").onclick = showLog;
 $("#btn-back").onclick = () => { S.region = null; save(); render(); };
 
 // ---------- 타이틀 ----------
@@ -341,6 +327,7 @@ $("#t-continue").onclick = () => { S = norm(load()) || fresh(); enter(); };
 $("#btn-title").onclick = () => { save(); showTitle(); };
 
 document.addEventListener("keydown", e => {
+  if(e.key === "Escape" && !$("#modal").hidden && $("#x")){ $("#x").click(); return; }
   if(!$("#modal").hidden && ADV && (e.key === " " || e.key === "Enter") && !e.target.closest("button")){ e.preventDefault(); ADV(); return; }
   if($("#modal").hidden || e.ctrlKey || e.metaKey || e.altKey || !/^[1-9]$/.test(e.key)) return;
   const b = document.querySelectorAll("#sheet .choice[data-i]")[+e.key - 1];
