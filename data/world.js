@@ -12,11 +12,12 @@ window.GAME_DATA = {
     { id: "city", name: "신도시",   x: 80, y: 22, unlocked: false },
     { id: "mtn",  name: "산악지대", x: 82, y: 64, unlocked: false }
   ],
+  // img: "assets/events/파일.jpg" 를 지정하면 그 그림을 장면에 사용 (장소 또는 이벤트에 지정 가능, 없으면 아래 art 지도 확대 그림)
   // art: 이벤트 장면 그림 = 지도 이미지의 확대 영역 (x,y는 지도 위 위치 %, z는 확대 배율)
   places: {
     old: [
       // 벙커: 게임 시작 장소. bunker:true 인 곳은 탐험이 아니라 휴식(잠자기) 메뉴가 열립니다.
-      { id: "bunker",      name: "벙커", icon: "bunker", bunker: true, x: 20, y: 26, art: { x: 22.5, y: 15, z: 3.1 } },
+      { id: "bunker",      name: "벙커", icon: "bunker", bunker: true, img: "assets/events/bunker.jpg", x: 20, y: 26, art: { x: 22.5, y: 15, z: 3.1 } },
       { id: "building",    name: "폐건물", icon: "building",      x: 47, y: 30, art: { x: 22.5, y: 15, z: 3.1 } },
       { id: "convenience", name: "편의점", icon: "store",      x: 78, y: 48, art: { x: 36, y: 19, z: 3.2 } },
       { id: "house",       name: "버려진 주택", icon: "house", x: 14, y: 62, art: { x: 9, y: 20, z: 3.2 } },
