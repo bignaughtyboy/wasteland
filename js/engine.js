@@ -3,10 +3,17 @@
 const D = window.GAME_DATA, $ = s => document.querySelector(s);
 const SND = window.Sound || { play(){}, set(){}, on:true };
 const KEY = "wasteland-rpg-save", MAX = 10;
-const norm = o => { if(o && !o.unlocked) o.unlocked = {}; return o; };
+const ACT = D.actMax || 5;
+const norm = o => {
+  if(!o) return o;
+  if(!o.unlocked) o.unlocked = {};
+  if(o.day == null){ o.day = 1; o.act = ACT; if(o.started && !(o.flags||{}).intro){ o.flags = o.flags || {}; o.flags.intro = 1; } }  // 이전 버전 세이브 호환
+  if(o.act == null) o.act = ACT;
+  return o;
+};
 let S = norm(load()) || fresh();
 
-function fresh(){ return { started:false, unlocked:{}, hp:MAX, san:MAX, inv:[], flags:{}, done:{}, seen:{}, log:[], region:null, over:null }; }
+function fresh(){ return { started:false, unlocked:{}, hp:MAX, san:MAX, inv:[], flags:{}, done:{}, seen:{}, log:[], region:"old", over:null, day:1, act:ACT }; }
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 const clamp = v => Math.max(0, Math.min(MAX, v));
@@ -65,6 +72,9 @@ function render(){
   $("#fx-san").classList.toggle("on", S.san <= D.lowSan);
   $("#fx-san").classList.toggle("crit", S.san <= 2);
   document.body.classList.toggle("low", S.san <= D.lowSan);
+  $("#day-no").textContent = `${S.day}일차`;
+  $("#act-pips").innerHTML = Array.from({length:ACT},(_,i)=>`<b class="${i<S.act?'on':''}"></b>`).join("");
+  $("#act-num").textContent = `${S.act}/${ACT}`;
   renderMap();
 }
 const svg = d => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -76,6 +86,7 @@ const ICON = {
   store:    svg('<path d="M4 9l2-5h12l2 5M5 9v11h14V9M9 20v-6h6v6"/>'),
   house:    svg('<path d="M3 12l9-8 9 8M6 10v10h12V10M10 20v-6h4v6"/>'),
   hospital: svg('<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M12 8v8M8 12h8"/>'),
+  bunker:   svg('<rect x="4" y="10" width="16" height="10"/><path d="M8 10V7h8v3M12 13v4M9.500 15h5"/>'),
   subway:   svg('<rect x="6" y="3" width="12" height="14" rx="3"/><path d="M6 11h12M9 14h.01M15 14h.01M9 20l-2 2M15 20l2 2"/>')
 };
 function zoom(reg){
@@ -171,7 +182,38 @@ function pickEvent(placeId){
   for(const e of rnd){ r -= (e.weight||1); if(r<=0) return e; }
   return rnd[0];
 }
+function showIntro(){
+  const items = (D.start && D.start.items) || [];
+  scene({ title: "WASTELAND", art: artHTML(null, D.places.old.find(p => p.bunker)), pgs: pages(D.intro), finish: el => {
+    el.innerHTML = `<div class="chips">${items.map(i => `<span class="pos">획득: ${iname(i)}</span>`).join("")}<span class="pos">활동력 ${ACT}</span></div><button class="choice" id="ok">눈을 뜬다</button>`;
+    $("#ok").onclick = () => { items.forEach(i => S.inv.push(i)); S.flags.intro = 1; S.act = ACT; addLog("벙커에서 눈을 떴다. 1일차."); SND.play("item"); save(); close(); render(); };
+  } });
+}
+function showBunker(place){
+  const art = artHTML(null, place);
+  scene({ title: "벙커", art, pgs: [`낡은 콘크리트 벽과 꺼져 가는 형광등. ${S.day}일차, 남은 활동력은 ${S.act}. 이곳은 그나마 안전하다.`], finish: el => {
+    el.innerHTML = `<button class="choice" id="sl"><b class="no">1</b><span class="t">잠든다 (다음 날로 넘어간다)</span></button><button class="choice" id="ot"><b class="no">2</b><span class="t">밖으로 나간다</span></button>`;
+    $("#ot").onclick = close; $("#sl").onclick = () => sleep(art);
+  } });
+}
+function sleep(art){
+  const r = D.sleep || {};
+  S.day++; S.act = ACT;
+  if(r.hp) S.hp = clamp(S.hp + r.hp); if(r.san) S.san = clamp(S.san + r.san);
+  addLog(`${S.day}일차 아침`); SND.play("heal"); save(); render();
+  const t = D.mornings[Math.floor(Math.random()*D.mornings.length)];
+  scene({ title: `${S.day}일차`, art, pgs: [t], finish: el => {
+    el.innerHTML = `<div class="chips">${r.hp ? `<span class="pos">체력 +${r.hp}</span>` : ""}${r.san ? `<span class="pos">정신력 +${r.san}</span>` : ""}<span class="pos">활동력 ${ACT}</span></div><button class="choice" id="ok">일어난다</button>`;
+    $("#ok").onclick = close;
+  } });
+}
 function explore(place){
+  if(place.bunker) return showBunker(place);
+  if(S.act <= 0){
+    return scene({ title: place.name, art: artHTML(null, place), pgs: ["몸이 무겁다. 더 돌아다니면 쓰러질 것이다.\n\n벙커로 돌아가 쉬어야 한다."], finish: el => {
+      el.innerHTML = `<button class="choice" id="ok">돌아간다</button>`; $("#ok").onclick = close; } });
+  }
+  S.act--; render();
   S.seen[place.id] = 1;
   const e = pickEvent(place.id), art = artHTML(e, place);
   if(!e){
@@ -331,7 +373,7 @@ function showTitle(){
   $("#t-continue").hidden = !(sv && sv.started && !sv.over);
   $("#title").classList.remove("hide");
 }
-function enter(){ $("#title").classList.add("hide"); render(); }
+function enter(){ $("#title").classList.add("hide"); render(); if(!S.flags.intro) showIntro(); }
 $("#t-start").onclick = () => {
   const sv = load();
   if(sv && sv.started && !sv.over && !confirm("저장된 진행 상황이 지워집니다. 새로 시작할까요?")) return;
