@@ -37,8 +37,10 @@ header{width:var(--mapw);display:flex;justify-content:space-between;align-items:
 header nav button{margin:0 0 0 2px;padding:6px 11px;border:0;border-bottom:1.5px solid transparent;border-radius:0;color:#cfccc0;letter-spacing:.06em}
 header nav button:hover:not(:disabled){background:none;color:#fff;border-bottom-color:#cfccc0}
 
-:root{--mapw:min(100%,calc((100vh - 215px) * .9139))}
-#map{position:relative;overflow:hidden;width:var(--mapw);aspect-ratio:1199/1312;background:#cfcec8;box-shadow:0 0 0 1px #000,0 14px 40px rgba(0,0,0,.7)}
+:root{--mapw:min(100%,calc((100vh - 305px) * .9139))}
+#stage{position:relative;overflow:hidden;width:var(--mapw);aspect-ratio:1199/1312;background:#1a1917;box-shadow:0 0 0 1px #000,0 14px 40px rgba(0,0,0,.7)}
+#map,#bunker{position:absolute;inset:0;overflow:hidden;background:#cfcec8}
+#map[hidden],#bunker[hidden]{display:none}
 #map-img{position:absolute;inset:0;background:url(../assets/world/main_map_01.jpg) center/100% 100%;transform-origin:0 0;transition:transform .7s ease}
 #map-title{position:absolute;top:4%;left:50%;transform:translateX(-50%);padding:5px 26px;font-size:17px;font-weight:700;letter-spacing:.35em;text-indent:.35em;z-index:2;
   background:rgba(32,31,28,.9);color:#ece9de;border:1.5px solid #ece9de;box-shadow:0 0 0 1.5px rgba(32,31,28,.9),0 4px 10px rgba(0,0,0,.45);border-radius:2px 8px 3px 9px}
@@ -295,12 +297,64 @@ body.low .art{filter:contrast(1.3) brightness(.82);animation:flick 4s steps(1) i
 .title-menu button,#t-settings{box-sizing:border-box;width:min(220px,70vw);height:44px;padding:0;display:flex;align-items:center;justify-content:center;font-size:16px;opacity:1}
 .title-menu button[hidden]{display:none}
 
-/* 일차 / 활동력 */
-.daybar{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:10px;border-top:1px dotted var(--ink2);position:relative}
-.daybar>b{font-family:var(--display);font-size:20px;letter-spacing:.14em;color:var(--ink)}
-.daybar .act{display:flex;align-items:center;gap:10px}
-.daybar .lab{font-size:13px;letter-spacing:.14em;color:var(--ink2)}
-.daybar .pips{display:flex;gap:5px}
-.daybar .pips b{width:16px;height:16px;border:1.5px solid var(--ink);border-radius:50%;background:transparent;transition:background .2s}
-.daybar .pips b.on{background:var(--ink)}
-.daybar i{font-style:normal;font-size:14px;color:var(--ink2);min-width:2.2em}
+/* ========== 벙커 화면 ========== */
+#bunker{background:#1a1917}
+#bunker-img{position:absolute;inset:0;background-color:#1f1e1b;
+  background-image:var(--bimg,none),linear-gradient(180deg,rgba(0,0,0,.35),transparent 30%,transparent 55%,rgba(0,0,0,.8)),repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 2px,transparent 2px 9px),radial-gradient(ellipse at 50% 38%,#4a4741,#1f1e1b 70%);
+  background-size:cover,100% 100%,auto,100% 100%;background-position:center;background-repeat:no-repeat,no-repeat,repeat,no-repeat}
+#bunker::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 90px rgba(0,0,0,.65)}
+#bunker-title,#map-title{font-family:var(--serif)}
+#bunker-title{position:absolute;top:4%;left:50%;transform:translateX(-50%);padding:5px 26px;font-size:17px;font-weight:700;letter-spacing:.35em;text-indent:.35em;z-index:2;
+  background:rgba(32,31,28,.9);color:#ece9de;border:1.5px solid #ece9de;box-shadow:0 0 0 1.5px rgba(32,31,28,.9),0 4px 10px rgba(0,0,0,.45);border-radius:2px 8px 3px 9px}
+.bk-menu{position:absolute;left:5%;right:5%;bottom:4.5%;z-index:3;display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr;gap:10px}
+.bk-menu button{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 6px;min-height:84px;
+  background:rgba(24,23,21,.9);color:#ece9de;border:1.5px solid #cfccbf;border-radius:0;box-shadow:0 0 0 3px rgba(24,23,21,.55),0 8px 18px rgba(0,0,0,.55);
+  transition:background .15s,color .15s,transform .15s}
+.bk-menu svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.bk-menu span{font-size:16px;font-weight:700;letter-spacing:.3em;text-indent:.3em}
+.bk-menu small{font-size:12px;opacity:.7;letter-spacing:.1em}
+.bk-menu button:hover:not(:disabled){background:#ece9de;color:#1a1917;transform:translateY(-3px)}
+.bk-menu .primary{background:#ece9de;color:#1a1917;border-color:#ece9de}
+.bk-menu .primary svg{width:34px;height:34px}
+.bk-menu .primary span{font-size:20px}
+.bk-menu .primary:hover:not(:disabled){background:#fff}
+.bk-menu button:focus-visible{outline:2px dashed #fff;outline-offset:4px}
+.bunker-art{background-color:#2a2925}
+
+/* ========== 일차 표시 (화면 오른쪽 위) ========== */
+#daytag{position:absolute;top:3.4%;right:3.2%;z-index:6;display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;align-items:end;column-gap:7px;padding:5px 16px 8px 14px;
+  background:rgba(24,23,21,.95);color:#f2f0e7;border:1.5px solid #ece9de;box-shadow:0 0 0 1.5px rgba(24,23,21,.95),0 6px 14px rgba(0,0,0,.55);
+  border-radius:2px 9px 3px 10px;transform:rotate(1.6deg);pointer-events:none}
+#daytag small{grid-column:1/-1;font-size:10px;letter-spacing:.5em;color:#a9a597;line-height:1.2;border-bottom:1px solid #4a4741;margin-bottom:2px;padding-bottom:2px}
+#daytag b{font-family:var(--display);font-weight:400;font-size:42px;line-height:1;min-width:.6em;text-align:center;text-shadow:0 1px 0 #000}
+#daytag span{font-size:16px;font-weight:700;letter-spacing:.14em;padding-bottom:4px}
+#daytag.pop{animation:dayPop .9s cubic-bezier(.2,1.6,.4,1)}
+@keyframes dayPop{0%{transform:rotate(1.6deg) scale(1)}25%{transform:rotate(-3deg) scale(1.35);background:#ece9de;color:#1a1917}100%{transform:rotate(1.6deg) scale(1)}}
+
+/* ========== 화면 전환 애니메이션 ========== */
+#stage.busy{pointer-events:none}
+#map.reveal{animation:mapReveal .9s cubic-bezier(.65,0,.25,1) both}
+@keyframes mapReveal{from{clip-path:circle(0% at 50% 78%);filter:brightness(.2)}to{clip-path:circle(150% at 50% 78%);filter:none}}
+#bunker.push{animation:bunkerPush .9s cubic-bezier(.65,0,.25,1) both}
+@keyframes bunkerPush{to{transform:scale(1.35);filter:blur(4px) brightness(.35)}}
+#bunker.fade-in{animation:bunkerIn .9s ease both}
+@keyframes bunkerIn{from{transform:scale(1.15);filter:blur(4px) brightness(.2);opacity:0}to{transform:none;filter:none;opacity:1}}
+#map.pull{animation:mapPull .9s ease both}
+@keyframes mapPull{to{transform:scale(.88);opacity:0;filter:brightness(.3)}}
+@media(prefers-reduced-motion:reduce){#map.reveal,#bunker.push,#bunker.fade-in,#map.pull{animation:none}}
+
+/* ========== 활동력 (체력·정신력 옆, 같은 상태창) ========== */
+#status .vital.act{grid-column:1/-1;gap:14px;padding-top:10px;border-top:1px dotted var(--ink2)}
+.vital.act .ico{width:60px;height:60px}
+.vital.act .txt{flex:1;display:grid;grid-template-columns:auto auto 1fr;align-items:baseline;column-gap:10px;row-gap:4px}
+.vital.act .lab{grid-column:1/-1}
+.vital.act b#act-num{font-size:30px}
+.vital.act i{justify-self:start}
+.bar.act{grid-column:1/-1;display:flex;gap:6px;margin-top:2px}
+.bar.act b{flex:1;max-width:none;height:12px;width:auto;border:1.5px solid var(--ink);background:transparent;transform:skewX(-14deg)}
+.bar.act b.on{background:var(--ink)}
+#v-act #flame{transition:transform .5s,opacity .5s}
+#v-act .ico .bg{fill:#ebe8de}
+#v-act.low .ico{animation:flick 1.2s ease-in-out infinite}
+@keyframes flick{50%{opacity:.6}}
+@media(max-width:600px){#daytag b{font-size:32px}#daytag{padding:4px 10px}.bk-menu{left:3%;right:3%;gap:6px}.bk-menu span{font-size:14px;letter-spacing:.15em}.bk-menu .primary span{font-size:17px}.bk-menu small{display:none}.bk-menu button{min-height:70px}}
