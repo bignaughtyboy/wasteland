@@ -413,7 +413,7 @@ function showTitle(){
 }
 function bunkerBg(){
   const img = D.bunker && D.bunker.img;
-  $("#bunker-img").style.setProperty("--bimg", img ? `url(${img})` : "none");
+  $("#bunker-img").style.setProperty("--bimg", img ? `url("${new URL(img, document.baseURI).href}")` : "none");
 }
 function enter(){ bunkerBg(); $("#title").classList.add("hide"); render(); if(!S.flags.intro) showIntro(); }
 $("#t-start").onclick = () => {
