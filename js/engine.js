@@ -129,15 +129,18 @@ function show(html, cls = ""){ $("#sheet").className = cls; $("#sheet").innerHTM
 function close(){ clearInterval(T); ADV = null; $("#modal").hidden = true; }
 const esc = t => t.replace(/&/g,"&amp;").replace(/</g,"&lt;");
 const pages = t => t.split(/\n\n+/).filter(Boolean);
-function artStyle(a){
+function artStyle(a, img){
   const z = a.z || 2.6, ar = D.mapAspect || 1.094, bh = 5/12, cl = v => Math.max(0, Math.min(100, v));
   const px = cl((0.5 - a.x/100*z) / (1 - z) * 100), py = cl((bh/2 - a.y/100*z*ar) / (bh - z*ar) * 100);
+  // img가 있으면 그 이미지를 위에 깔고, 파일이 없거나 못 불러오면 지도 확대 그림이 대신 보입니다.
+  if(img) return `background-image:url(${img}),url(${D.worldMap});background-size:cover,${z*100}% auto;background-position:center,${px}% ${py}%;background-repeat:no-repeat`;
   return `background-image:url(${D.worldMap});background-size:${z*100}% auto;background-position:${px}% ${py}%`;
 }
 function placeOf(id){ for(const k in D.places){ const p = D.places[k].find(x => x.id===id); if(p) return p; } return null; }
 function artHTML(e, place){
-  const a = (e && e.art) || (place && place.art); if(!a) return "";
-  return `<div class="art" style="${artStyle(a)}">${place ? `<span class="cap">${place.name}</span>` : ""}</div>`;
+  const a = (e && e.art) || (place && place.art) || { x:50, y:50, z:2.6 }, img = (e && e.img) || (place && place.img);
+  if(!img && !(e && e.art) && !(place && place.art)) return "";
+  return `<div class="art" style="${artStyle(a, img)}">${place ? `<span class="cap">${place.name}</span>` : ""}</div>`;
 }
 // 장면: 위에 그림, 아래에 글. 클릭할 때마다 한 장면씩 넘어가고 마지막에 finish()가 선택지를 붙인다.
 function scene({ title, art = "", pgs, finish }){
