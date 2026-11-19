@@ -9,11 +9,12 @@ const norm = o => {
   if(!o.unlocked) o.unlocked = {};
   if(o.day == null){ o.day = 1; o.act = ACT; if(o.started && !(o.flags||{}).intro){ o.flags = o.flags || {}; o.flags.intro = 1; } }  // 이전 버전 세이브 호환
   if(o.act == null) o.act = ACT;
+  if(!o.view) o.view = "bunker";
   return o;
 };
 let S = norm(load()) || fresh();
 
-function fresh(){ return { started:false, unlocked:{}, hp:MAX, san:MAX, inv:[], flags:{}, done:{}, seen:{}, log:[], region:"old", over:null, day:1, act:ACT }; }
+function fresh(){ return { started:false, unlocked:{}, hp:MAX, san:MAX, inv:[], flags:{}, done:{}, seen:{}, log:[], region:null, over:null, day:1, act:ACT, view:"bunker" }; }
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 const clamp = v => Math.max(0, Math.min(MAX, v));
@@ -37,7 +38,7 @@ function need(r){
 }
 
 // ---------- 화면 ----------
-let prev = null;
+let prev = null, prevDay = 0, animating = false;
 function flash(sel, cls){ const el = $(sel); el.classList.remove("hit","gain"); void el.getBoundingClientRect(); el.classList.add(cls); }
 // 정신력이 떨어질수록 눈 위에 늘어나는 낙서(고정 시드)
 (function(){
@@ -72,9 +73,18 @@ function render(){
   $("#fx-san").classList.toggle("on", S.san <= D.lowSan);
   $("#fx-san").classList.toggle("crit", S.san <= 2);
   document.body.classList.toggle("low", S.san <= D.lowSan);
-  $("#day-no").textContent = `${S.day}일차`;
-  $("#act-pips").innerHTML = Array.from({length:ACT},(_,i)=>`<b class="${i<S.act?'on':''}"></b>`).join("");
-  $("#act-num").textContent = `${S.act}/${ACT}`;
+  // 일차
+  const dn = $("#day-no");
+  if(dn.textContent !== String(S.day)){ dn.textContent = S.day; if(prevDay && prevDay !== S.day){ const t = $("#daytag"); t.classList.remove("pop"); void t.offsetWidth; t.classList.add("pop"); } }
+  prevDay = S.day;
+  // 활동력: 등불이 작아지고 칸이 줄어든다
+  $("#act-bar").innerHTML = Array.from({length:ACT},(_,i)=>`<b class="${i<S.act?'on':''}"></b>`).join("");
+  $("#act-num").innerHTML = `${S.act}<small>/${ACT}</small>`;
+  $("#act-state").textContent = stateOf(D.actStates, S.act);
+  const fl = $("#flame"), k = S.act / ACT;
+  fl.style.transform = `translateY(${((1-k)*8).toFixed(1)}px) scale(${(0.55 + 0.45*k).toFixed(2)})`; fl.style.transformOrigin = "32px 46px"; fl.style.opacity = S.act > 0 ? 1 : 0;
+  $("#v-act").classList.toggle("low", S.act <= 1);
+  applyView();
   renderMap();
 }
 const svg = d => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -105,7 +115,7 @@ function soon(n){
 function renderMap(){
   const nodes = $("#nodes"); nodes.innerHTML = "";
   const reg = (S.region && D.places[S.region]) ? D.regions.find(r => r.id===S.region) : null;
-  $("#btn-back").hidden = !reg;
+  $("#btn-back").hidden = false; $("#btn-back").textContent = reg ? "← 뒤로" : "← 벙커";
   $("#map-title").textContent = reg ? reg.name : "";
   zoom(reg);
   (reg ? D.places[reg.id] : D.regions).forEach(n => {
@@ -185,18 +195,44 @@ function pickEvent(placeId){
   for(const e of rnd){ r -= (e.weight||1); if(r<=0) return e; }
   return rnd[0];
 }
+function bunkerArt(){
+  const img = D.bunker && D.bunker.sceneImg;
+  return `<div class="art bunker-art" style="${img ? `background-image:url(${img}),linear-gradient(#2a2925,#1a1917);background-size:cover,cover;background-position:center` : ""}"><span class="cap">벙커</span></div>`;
+}
+// ---------- 벙커 / 화면 전환 ----------
+const REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function applyView(){
+  if(animating) return;
+  $("#bunker").hidden = S.view !== "bunker"; $("#map").hidden = S.view !== "map";
+}
+function setView(v, animate){
+  if(S.view === v){ applyView(); return; }
+  if(v === "bunker") S.region = null;
+  if(!animate || REDUCE){ S.view = v; save(); render(); return; }
+  const b = $("#bunker"), m = $("#map"), st = $("#stage");
+  animating = true; st.classList.add("busy"); SND.play("open");
+  S.view = v; save(); renderMap();
+  const from = v === "map" ? b : m, to = v === "map" ? m : b;
+  to.hidden = false; from.hidden = false;
+  to.classList.add(v === "map" ? "reveal" : "fade-in"); from.classList.add(v === "map" ? "push" : "pull");
+  setTimeout(() => {
+    from.hidden = true; ["reveal","fade-in","push","pull"].forEach(c => { b.classList.remove(c); m.classList.remove(c); });
+    animating = false; st.classList.remove("busy"); render();
+  }, 950);
+}
+function confirmSleep(){
+  show(`<h2>잠들기</h2><p>벙커의 낡은 침대에 몸을 눕힌다.\n\n잠들면 다음 날이 되고, 활동력이 모두 돌아온다.</p><button class="choice" data-i="0" id="sl"><b class="no">1</b><span class="t">잠든다</span></button><button class="choice" data-i="1" id="no"><b class="no">2</b><span class="t">아직 잠들지 않는다</span></button>`);
+  $("#sl").onclick = () => sleep(bunkerArt()); $("#no").onclick = close;
+}
+$("#bk-go").onclick = () => setView("map", true);
+$("#bk-sleep").onclick = confirmSleep;
+$("#bk-inv").onclick = () => $("#btn-inv").click();
+$("#bk-log").onclick = () => $("#btn-log").click();
 function showIntro(){
   const items = (D.start && D.start.items) || [];
-  scene({ title: "WASTELAND", art: artHTML(null, D.places.old.find(p => p.bunker)), pgs: pages(D.intro), finish: el => {
+  scene({ title: "WASTELAND", art: bunkerArt(), pgs: pages(D.intro), finish: el => {
     el.innerHTML = `<div class="chips">${items.map(i => `<span class="pos">획득: ${iname(i)}</span>`).join("")}<span class="pos">활동력 ${ACT}</span></div><button class="choice" id="ok">눈을 뜬다</button>`;
     $("#ok").onclick = () => { items.forEach(i => S.inv.push(i)); S.flags.intro = 1; S.act = ACT; addLog("벙커에서 눈을 떴다. 1일차."); SND.play("item"); save(); close(); render(); };
-  } });
-}
-function showBunker(place){
-  const art = artHTML(null, place);
-  scene({ title: "벙커", art, pgs: [`낡은 콘크리트 벽과 꺼져 가는 형광등. ${S.day}일차, 남은 활동력은 ${S.act}. 이곳은 그나마 안전하다.`], finish: el => {
-    el.innerHTML = `<button class="choice" id="sl"><b class="no">1</b><span class="t">잠든다 (다음 날로 넘어간다)</span></button><button class="choice" id="ot"><b class="no">2</b><span class="t">밖으로 나간다</span></button>`;
-    $("#ot").onclick = close; $("#sl").onclick = () => sleep(art);
   } });
 }
 function sleep(art){
@@ -211,7 +247,6 @@ function sleep(art){
   } });
 }
 function explore(place){
-  if(place.bunker) return showBunker(place);
   if(S.act <= 0){
     return scene({ title: place.name, art: artHTML(null, place), pgs: ["몸이 무겁다. 더 돌아다니면 쓰러질 것이다.\n\n벙커로 돌아가 쉬어야 한다."], finish: el => {
       el.innerHTML = `<button class="choice" id="ok">돌아간다</button>`; $("#ok").onclick = close; } });
@@ -368,7 +403,7 @@ $("#btn-log").onclick = () => {
   show(`<h2>기록</h2>${S.log.length ? S.log.map(l=>`<div class="log-row">${l}</div>`).join("") : "<p>아직 기록이 없다.</p>"}<br><button class="choice" id="x">닫기</button>`);
   $("#x").onclick = close;
 };
-$("#btn-back").onclick = () => { S.region = null; save(); render(); };
+$("#btn-back").onclick = () => { if(S.region){ S.region = null; save(); render(); } else setView("bunker", true); };
 
 // ---------- 타이틀 ----------
 function showTitle(){
@@ -376,7 +411,11 @@ function showTitle(){
   $("#t-continue").hidden = !(sv && sv.started && !sv.over);
   $("#title").classList.remove("hide");
 }
-function enter(){ $("#title").classList.add("hide"); render(); if(!S.flags.intro) showIntro(); }
+function bunkerBg(){
+  const img = D.bunker && D.bunker.img;
+  $("#bunker-img").style.setProperty("--bimg", img ? `url(${img})` : "none");
+}
+function enter(){ bunkerBg(); $("#title").classList.add("hide"); render(); if(!S.flags.intro) showIntro(); }
 $("#t-start").onclick = () => {
   const sv = load();
   if(sv && sv.started && !sv.over && !confirm("저장된 진행 상황이 지워집니다. 새로 시작할까요?")) return;
@@ -395,6 +434,7 @@ document.addEventListener("keydown", e => {
 // 텍스트 복사·선택·드래그·우클릭 방지 (브라우저 기능 차단일 뿐 완전한 보호는 아님)
 ["copy","cut","contextmenu","selectstart","dragstart"].forEach(t => document.addEventListener(t, e => e.preventDefault()));
 
+bunkerBg();
 render();
 showTitle();
 window.__wastelandLoaded = true;
