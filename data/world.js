@@ -16,8 +16,6 @@ window.GAME_DATA = {
   // art: 이벤트 장면 그림 = 지도 이미지의 확대 영역 (x,y는 지도 위 위치 %, z는 확대 배율)
   places: {
     old: [
-      // 벙커: 게임 시작 장소. bunker:true 인 곳은 탐험이 아니라 휴식(잠자기) 메뉴가 열립니다.
-      { id: "bunker",      name: "벙커", icon: "bunker", bunker: true, img: "assets/events/bunker.jpg", x: 20, y: 26, art: { x: 22.5, y: 15, z: 3.1 } },
       { id: "building",    name: "폐건물", icon: "building",      x: 47, y: 30, art: { x: 22.5, y: 15, z: 3.1 } },
       { id: "convenience", name: "편의점", icon: "store",      x: 78, y: 48, art: { x: 36, y: 19, z: 3.2 } },
       { id: "house",       name: "버려진 주택", icon: "house", x: 14, y: 62, art: { x: 9, y: 20, z: 3.2 } },
@@ -26,6 +24,9 @@ window.GAME_DATA = {
     ]
   },
   // ----- 시작 설정 -----
+  // 벙커 화면 그림 (정사각형에 가까운 1200×1312 권장) / 장면 그림(가로 2.4:1, 1920×800 권장). 없으면 기본 배경이 보입니다.
+  bunker: { img: "assets/bunker/main.jpg", sceneImg: "assets/events/bunker.jpg" },
+  actStates: [ [4,5,"활기"], [2,3,"지침"], [1,1,"한계"], [0,0,"탈진"] ],
   actMax: 5,                                  // 하루 활동력 (탐험 1회당 1 소모)
   start: { items: ["flashlight", "bandage", "can"] },   // 처음 지급하는 기본 아이템
   sleep: { hp: 1, san: 1 },                   // 벙커에서 잘 때 회복량
