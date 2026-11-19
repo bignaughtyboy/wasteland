@@ -59,7 +59,6 @@ header nav button:hover:not(:disabled){background:none;color:#fff;border-bottom-
 .node.region .sign{padding:7px 18px 7px 9px;gap:10px}
 .node.region .ic{width:32px;height:32px}.node.region .ic svg{width:18px;height:18px}
 .node.region .nm{font-size:17px;letter-spacing:.1em}
-.node.place.seen .nm::after{content:" ✓";font-weight:400;opacity:.75}
 .node:not(.locked):hover .sign{background:#ece9de;color:var(--ink);border-color:var(--ink)}
 .node:not(.locked):hover .sign::after{border-color:var(--ink)}
 .node.locked,.node:disabled{cursor:not-allowed;opacity:1}
