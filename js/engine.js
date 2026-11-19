@@ -102,7 +102,7 @@ function renderMap(){
     const b = document.createElement("button");
     b.className = "node " + (reg ? "place" : "region") + (locked ? " locked" : "") + (S.seen[n.id] ? " seen" : "") + (!reg && S.unlocked[n.id] && !S.seen[n.id] ? " fresh" : "");
     const pl = D.places[n.id];
-    const sub = reg ? "" : locked ? "잠김" : (S.unlocked[n.id] && !S.seen[n.id]) ? "새 지역" : pl ? `탐험 ${pl.filter(x => S.seen[x.id]).length}/${pl.length}` : "준비 중";
+    const sub = reg ? "" : locked ? "잠김" : (S.unlocked[n.id] && !S.seen[n.id]) ? "새 지역" : pl ? "" : "준비 중";
     b.innerHTML = `<span class="sign"><span class="ic">${locked ? ICON.lock : ICON[n.icon || (reg ? "dot" : "pin")]}</span><span class="lb"><span class="nm">${n.name}</span>${sub ? `<span class="stt">${sub}</span>` : ""}</span></span>`;
     b.style.left = n.x + "%"; b.style.top = n.y + "%";
     b.disabled = locked;
