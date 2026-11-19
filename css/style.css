@@ -294,3 +294,13 @@ body.low .art{filter:contrast(1.3) brightness(.82);animation:flick 4s steps(1) i
 .title-menu{gap:10px}
 .title-menu button,#t-settings{box-sizing:border-box;width:min(220px,70vw);height:44px;padding:0;display:flex;align-items:center;justify-content:center;font-size:16px;opacity:1}
 .title-menu button[hidden]{display:none}
+
+/* 일차 / 활동력 */
+.daybar{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:10px;border-top:1px dotted var(--ink2);position:relative}
+.daybar>b{font-family:var(--display);font-size:20px;letter-spacing:.14em;color:var(--ink)}
+.daybar .act{display:flex;align-items:center;gap:10px}
+.daybar .lab{font-size:13px;letter-spacing:.14em;color:var(--ink2)}
+.daybar .pips{display:flex;gap:5px}
+.daybar .pips b{width:16px;height:16px;border:1.5px solid var(--ink);border-radius:50%;background:transparent;transition:background .2s}
+.daybar .pips b.on{background:var(--ink)}
+.daybar i{font-style:normal;font-size:14px;color:var(--ink2);min-width:2.2em}
