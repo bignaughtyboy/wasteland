@@ -59,7 +59,6 @@ function render(){
   }
   prev = { hp:S.hp, san:S.san };
   $("#hp-num").innerHTML = `${S.hp}<small>/${MAX}</small>`; $("#san-num").innerHTML = `${S.san}<small>/${MAX}</small>`;
-  $("#hp-state").textContent = stateOf(D.hpStates, S.hp); $("#san-state").textContent = stateOf(D.sanStates, S.san);
   // 심장: 피가 차오르는 높이 / 박동 속도
   $("#hp-rect").setAttribute("y", (56 - 46*S.hp/MAX).toFixed(1));
   $("#v-hp .ico").style.setProperty("--beat", (0.5 + S.hp*0.09).toFixed(2) + "s");
@@ -78,9 +77,10 @@ function render(){
   if(dn.textContent !== String(S.day)){ dn.textContent = S.day; if(prevDay && prevDay !== S.day){ const t = $("#daytag"); t.classList.remove("pop"); void t.offsetWidth; t.classList.add("pop"); } }
   prevDay = S.day;
   // 활동력: 등불이 작아지고 칸이 줄어든다
-  $("#act-bar").innerHTML = Array.from({length:ACT},(_,i)=>`<b class="${i<S.act?'on':''}"></b>`).join("");
+  // 노란색 → 주황색으로 칸마다 이어지는 그라데이션
+  const hue = t => (46 - 24*t).toFixed(1);
+  $("#act-bar").innerHTML = Array.from({length:ACT},(_,i)=>`<b class="${i<S.act?'on':''}" style="--c1:hsl(${hue(i/ACT)} 88% 55%);--c2:hsl(${hue((i+1)/ACT)} 90% 52%)"></b>`).join("");
   $("#act-num").innerHTML = `${S.act}<small>/${ACT}</small>`;
-  $("#act-state").textContent = stateOf(D.actStates, S.act);
   const fl = $("#flame"), k = S.act / ACT;
   fl.style.transform = `translateY(${((1-k)*8).toFixed(1)}px) scale(${(0.55 + 0.45*k).toFixed(2)})`; fl.style.transformOrigin = "32px 46px"; fl.style.opacity = S.act > 0 ? 1 : 0;
   $("#v-act").classList.toggle("low", S.act <= 1);
