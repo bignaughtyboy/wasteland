@@ -378,6 +378,8 @@ body.low .art{filter:contrast(1.3) brightness(.82);animation:flick 4s steps(1) i
 #status .vital.act .txt{display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:10px;row-gap:6px}
 #status .vital.act .lab{grid-column:1;font-size:14px}
 #status .vital.act b#act-num{grid-column:2;margin:0;line-height:1}
-.bar.act{gap:5px}
-.bar.act b{height:14px;border:1.5px solid rgba(43,42,39,.55);transform:skewX(-14deg)}
-.bar.act b.on{background:linear-gradient(90deg,var(--c1),var(--c2));border-color:#9a5a12;box-shadow:inset 0 1px 0 rgba(255,255,255,.45)}
+.bar.act{gap:4px}
+.bar.act b{height:9px;border:1.5px solid rgba(43,42,39,.4);border-radius:1px;transform:none;background:transparent}
+.bar.act b.on{background:#d9822b;border-color:#d9822b;box-shadow:none}
+
+.endcount{margin:6px 0 20px;font-size:14px;letter-spacing:.14em;color:var(--ink2)}
