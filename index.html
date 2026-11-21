@@ -13,6 +13,7 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="2.2"/></filter>
   <pattern id="hatchR" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="#8b3a2b" stroke-width="2"/></pattern>
+  <pattern id="hatchO" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="#c9741f" stroke-width="2"/></pattern>
   <pattern id="hatchB" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="4" stroke="#4d6071" stroke-width="1.6"/></pattern>
   <clipPath id="hp-clip"><rect id="hp-rect" x="0" y="56" width="64" height="64"/></clipPath>
 </svg>
@@ -50,7 +51,7 @@
       <div id="bunker-img"></div>
       <div id="bunker-title" class="plate">벙커</div>
       <div class="bk-menu">
-        <button id="bk-go" class="primary"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.500 8.500l-2 5-5 2 2-5z"/></svg><span>탐험</span><small>지도를 펼친다</small></button>
+        <button id="bk-go" class="primary"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.500 8.500l-2 5-5 2 2-5z"/></svg><span>탐 험</span><small>폐허의 지도를 펼친다</small><em aria-hidden="true">→</em></button>
         <button id="bk-sleep"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.500A8 8 0 0 1 9.500 4a8 8 0 1 0 10.500 10.500z"/></svg><span>잠들기</span></button>
         <button id="bk-inv"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9h12l1 11H5zM9 9V7a3 3 0 0 1 6 0v2M9 13h6"/></svg><span>가방</span></button>
         <button id="bk-log"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM5 18a2 2 0 0 1 2-2h12M9 8h6"/></svg><span>기록</span></button>
@@ -76,7 +77,7 @@
         <g clip-path="url(#hp-clip)"><path d="M32 56 C8 40 4 22 14 14 C22 8 30 12 32 19 C34 12 42 8 50 14 C60 22 56 40 32 56Z" fill="#8b3a2b" fill-opacity=".5"/><path d="M32 56 C8 40 4 22 14 14 C22 8 30 12 32 19 C34 12 42 8 50 14 C60 22 56 40 32 56Z" fill="url(#hatchR)"/></g>
         <path class="line" d="M32 56 C8 40 4 22 14 14 C22 8 30 12 32 19 C34 12 42 8 50 14 C60 22 56 40 32 56Z" filter="url(#rough)"/>
       </g></svg>
-      <div class="txt"><span class="lab">체력</span><b id="hp-num"></b><i id="hp-state"></i><div id="hp-bar" class="bar"></div></div>
+      <div class="txt"><span class="lab">체력</span><b id="hp-num"></b><div id="hp-bar" class="bar"></div></div>
     </div>
     <div class="vital san" id="v-san">
       <svg class="ico" viewBox="0 0 64 64" aria-hidden="true"><g class="eye">
@@ -86,15 +87,15 @@
         <path class="line" d="M3 32 Q32 6 61 32 Q32 58 3 32Z" filter="url(#rough)"/>
         <g id="scribbles"></g>
       </g></svg>
-      <div class="txt"><span class="lab">정신력</span><b id="san-num"></b><i id="san-state"></i><div id="san-bar" class="bar"></div></div>
+      <div class="txt"><span class="lab">정신력</span><b id="san-num"></b><div id="san-bar" class="bar"></div></div>
     </div>
     <div class="vital act" id="v-act">
       <svg class="ico" viewBox="0 0 64 64" aria-hidden="true">
         <path class="bg" d="M23 20 L19 46 H45 L41 20Z"/>
-        <g id="flame"><path d="M32 26 C40 34 40 42 32 46 C24 42 24 34 32 26Z" fill="#8b3a2b" fill-opacity=".55"/><path d="M32 26 C40 34 40 42 32 46 C24 42 24 34 32 26Z" fill="url(#hatchR)"/></g>
+        <g id="flame"><path d="M32 26 C40 34 40 42 32 46 C24 42 24 34 32 26Z" fill="#f0b43a" fill-opacity=".85"/><path d="M32 26 C40 34 40 42 32 46 C24 42 24 34 32 26Z" fill="url(#hatchO)"/></g>
         <g class="line" fill="none" filter="url(#rough)"><path d="M21 16 Q32 0 43 16"/><path d="M19 16h26l-4 5H23z"/><path d="M23 21 L19 46 H45 L41 21"/><path d="M16 46h32v6H16z"/><path d="M32 21v5M27 21l-1 25M37 21l1 25"/></g>
       </svg>
-      <div class="txt"><span class="lab">활동력</span><b id="act-num"></b><i id="act-state"></i><div id="act-bar" class="bar act"></div></div>
+      <div class="txt"><span class="lab">활동력</span><b id="act-num"></b><div id="act-bar" class="bar act"></div></div>
     </div>
   </footer>
 </main>
