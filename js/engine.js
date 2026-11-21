@@ -28,12 +28,14 @@ function ok(r){
   if(r.items && !r.items.every(i => S.inv.includes(i))) return false;
   if(r.anyItems && !r.anyItems.some(i => S.inv.includes(i))) return false;
   if(r.san && (S.san < r.san[0] || S.san > r.san[1])) return false;
+  if(r.day && (S.day < r.day[0] || S.day > r.day[1])) return false;
   return true;
 }
 function need(r){
   const n = []; if(!r) return "";
   (r.items||[]).forEach(i => n.push(iname(i)));
-  (r.flags||[]).forEach(() => n.push("특정 조건"));
+  (r.flags||[]).forEach(f => n.push((D.flagHints && D.flagHints[f]) || "특정 조건"));
+  if(r.san) n.push(`정신력 ${r.san[0]}~${r.san[1]}일 때`);
   return n.length ? "필요: " + n.join(", ") : "";
 }
 
@@ -77,9 +79,7 @@ function render(){
   if(dn.textContent !== String(S.day)){ dn.textContent = S.day; if(prevDay && prevDay !== S.day){ const t = $("#daytag"); t.classList.remove("pop"); void t.offsetWidth; t.classList.add("pop"); } }
   prevDay = S.day;
   // 활동력: 등불이 작아지고 칸이 줄어든다
-  // 노란색 → 주황색으로 칸마다 이어지는 그라데이션
-  const hue = t => (46 - 24*t).toFixed(1);
-  $("#act-bar").innerHTML = Array.from({length:ACT},(_,i)=>`<b class="${i<S.act?'on':''}" style="--c1:hsl(${hue(i/ACT)} 88% 55%);--c2:hsl(${hue((i+1)/ACT)} 90% 52%)"></b>`).join("");
+  $("#act-bar").innerHTML = Array.from({length:ACT},(_,i)=>`<b class="${i<S.act?'on':''}"></b>`).join("");
   $("#act-num").innerHTML = `${S.act}<small>/${ACT}</small>`;
   const fl = $("#flame"), k = S.act / ACT;
   fl.style.transform = `translateY(${((1-k)*8).toFixed(1)}px) scale(${(0.55 + 0.45*k).toFixed(2)})`; fl.style.transformOrigin = "32px 46px"; fl.style.opacity = S.act > 0 ? 1 : 0;
@@ -97,6 +97,24 @@ const ICON = {
   house:    svg('<path d="M3 12l9-8 9 8M6 10v10h12V10M10 20v-6h4v6"/>'),
   hospital: svg('<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M12 8v8M8 12h8"/>'),
   bunker:   svg('<rect x="4" y="10" width="16" height="10"/><path d="M8 10V7h8v3M12 13v4M9.500 15h5"/>'),
+  factory:  svg('<path d="M3 21V11l5 3V11l5 3V7h4v14zM17 7V3M8 17h1M12 17h1M16 17h1"/>'),
+  dock:     svg('<path d="M4 21h16M7 21V8h10M7 8l-3 3M17 8v6M15 14h4"/>'),
+  bolt:     svg('<path d="M13 2L5 14h6l-1 8 8-12h-6z"/>'),
+  office:   svg('<path d="M4 7h16v13H4zM9 7V4h6v3M4 12h16"/>'),
+  trash:    svg('<path d="M5 7h14M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6"/>'),
+  anchor:   svg('<circle cx="12" cy="5" r="2"/><path d="M12 7v14M7 12H5a7 7 0 0 0 14 0h-2M8 11h8"/>'),
+  lighthouse: svg('<path d="M9 21l1-12h4l1 12zM10 9l2-5 2 5M7 21h10M3 6l4 2M21 6l-4 2"/>'),
+  village:  svg('<path d="M2 14l10-9 10 9M5 12v8h14v-8M9 20v-4h6v4"/>'),
+  island:   svg('<path d="M3 19c3-2 5 2 9 0s6 2 9 0M12 17V8M12 8c-3-3-6-2-7 0M12 8c3-3 6-2 7 0"/>'),
+  antenna:  svg('<circle cx="12" cy="11" r="2"/><path d="M12 13v8M8 21h8M7 6a7 7 0 0 0 0 10M17 6a7 7 0 0 1 0 10"/>'),
+  apartment:svg('<path d="M5 21V4h9v17M14 9h5v12M8 8h3M8 12h3M8 16h3M16 13h1M16 17h1"/>'),
+  cart:     svg('<path d="M3 4h3l2 12h10l2-8H7M10 20h.01M17 20h.01"/>'),
+  gate:     svg('<path d="M4 20V5M4 8h16v4H4M8 8l4 4M14 8l4 4"/>'),
+  tower:    svg('<path d="M10 21l1-14h2l1 14M8 21h8M12 7V3M9 5l3-2 3 2M9 14h6"/>'),
+  cabin:    svg('<path d="M3 12l9-8 9 8M5 10v10h14V10M8 20v-6h3v6M14 13h3v3h-3z"/>'),
+  cablecar: svg('<path d="M3 4l18 4M12 6v4M7 10h10v7H7zM10 13h4"/>'),
+  peak:     svg('<path d="M2 20l7-13 4 7 3-4 6 10zM9 7l2 3"/>'),
+  dome:     svg('<path d="M4 20h16M5 20a7 7 0 0 1 14 0M12 8V4M12 12l5-4M9 20v-4h6v4"/>'),
   subway:   svg('<rect x="6" y="3" width="12" height="14" rx="3"/><path d="M6 11h12M9 14h.01M15 14h.01M9 20l-2 2M15 20l2 2"/>')
 };
 function zoom(reg){
@@ -185,12 +203,17 @@ function chips(r){
 function addLog(t){ S.log.unshift(t); S.log = S.log.slice(0,60); }
 
 // ---------- 탐험 ----------
+function regionOf(placeId){ for(const k in D.places){ if(D.places[k].some(p => p.id===placeId)) return k; } return null; }
+// 이벤트 뽑기: ① 스토리 이벤트는 조건을 만족하면 일정 확률(chance)로만 ② 아주 낮은 확률로 "아무것도 없음" ③ 나머지는 가중치로 (직전에 본 이벤트는 피함)
 function pickEvent(placeId){
-  const pool = D.events.filter(e => e.place===placeId && !S.done[e.id] && ok(e.req));
-  const fixed = pool.find(e => e.type==="fixed" || e.type==="story");
-  if(fixed) return fixed;
-  const rnd = pool.filter(e => e.type==="random" || e.type==="conditional");
+  const pool = D.events.filter(e => e.place===placeId && (e.repeat || !S.done[e.id]) && ok(e.req));
+  for(const e of pool.filter(e => e.type==="story" || e.type==="fixed")){
+    if(e.type==="fixed" || Math.random() < (e.chance == null ? 0.35 : e.chance)) return e;
+  }
+  if(Math.random() < (D.fillerChance || 0)) return null;
+  let rnd = pool.filter(e => e.type==="random" || e.type==="conditional");
   if(!rnd.length) return null;
+  const alt = rnd.filter(e => e.id !== S.lastEvent); if(alt.length) rnd = alt;
   let r = Math.random() * rnd.reduce((s,e)=>s+(e.weight||1),0);
   for(const e of rnd){ r -= (e.weight||1); if(r<=0) return e; }
   return rnd[0];
@@ -220,8 +243,17 @@ function setView(v, animate){
     animating = false; st.classList.remove("busy"); render();
   }, 950);
 }
+let lastSlp = "";
+function pickText(norm, lowHp, lowSan){
+  let pool = norm;
+  if(S.hp <= 4 && lowHp && lowHp.length && Math.random() < 0.6) pool = lowHp;
+  else if(S.san <= 4 && lowSan && lowSan.length && Math.random() < 0.6) pool = lowSan;
+  const alt = pool.filter(x => x !== lastSlp); pool = alt.length ? alt : pool;
+  return lastSlp = pool[Math.floor(Math.random()*pool.length)];
+}
 function confirmSleep(){
-  show(`<h2>잠들기</h2><p>벙커의 낡은 침대에 몸을 눕힌다.\n\n잠들면 다음 날이 되고, 활동력이 모두 돌아온다.</p><button class="choice" data-i="0" id="sl"><b class="no">1</b><span class="t">잠든다</span></button><button class="choice" data-i="1" id="no"><b class="no">2</b><span class="t">아직 잠들지 않는다</span></button>`);
+  const t = pickText(D.sleepPrompts, D.sleepPromptsLowHp, D.sleepPromptsLowSan);
+  show(`<h2>잠들기</h2><p>${t.replace(/\n/g,"<br>")}</p><button class="choice" data-i="0" id="sl"><b class="no">1</b><span class="t">잠든다</span></button><button class="choice" data-i="1" id="no"><b class="no">2</b><span class="t">아직 잠들지 않는다</span></button>`);
   $("#sl").onclick = () => sleep(bunkerArt()); $("#no").onclick = close;
 }
 $("#bk-go").onclick = () => setView("map", true);
@@ -240,8 +272,8 @@ function sleep(art){
   S.day++; S.act = ACT;
   if(r.hp) S.hp = clamp(S.hp + r.hp); if(r.san) S.san = clamp(S.san + r.san);
   addLog(`${S.day}일차 아침`); SND.play("heal"); save(); render();
-  const t = D.mornings[Math.floor(Math.random()*D.mornings.length)];
-  scene({ title: `${S.day}일차`, art, pgs: [t], finish: el => {
+  const t = pickText(D.mornings, D.morningsLowHp, D.morningsLowSan), extra = D.dayLines && D.dayLines[S.day];
+  scene({ title: `${S.day}일차`, art, pgs: extra ? [t, extra] : [t], finish: el => {
     el.innerHTML = `<div class="chips">${r.hp ? `<span class="pos">체력 +${r.hp}</span>` : ""}${r.san ? `<span class="pos">정신력 +${r.san}</span>` : ""}<span class="pos">활동력 ${ACT}</span></div><button class="choice" id="ok">일어난다</button>`;
     $("#ok").onclick = close;
   } });
@@ -255,10 +287,11 @@ function explore(place){
   S.seen[place.id] = 1;
   const e = pickEvent(place.id), art = artHTML(e, place);
   if(!e){
-    const f = D.fillers[Math.floor(Math.random()*D.fillers.length)];
+    const fl = ((D.fillersBy && D.fillersBy[regionOf(place.id)]) || []).concat(D.fillers), f = fl[Math.floor(Math.random()*fl.length)];
     return scene({ title: place.name, art, pgs: [f], finish: el => {
       el.innerHTML = `<button class="choice" id="ok">돌아간다</button>`; $("#ok").onclick = () => { close(); render(); save(); }; } });
   }
+  S.lastEvent = e.id; save();
   SND.play("open");
   const t = (S.san <= D.lowSan && e.textLow) ? e.textLow : e.text;
   scene({ title: e.title, art, pgs: pages(t), finish: el => {
@@ -270,8 +303,12 @@ function explore(place){
   } });
 }
 function choose(e, c, art){
-  S.done[e.id] = 1;
   let r = c.result;
+  if(r.roll){   // 확률로 결과 하나 고르기
+    let t = Math.random() * r.roll.reduce((a,x) => a + x[0], 0);
+    r = (r.roll.find(x => (t -= x[0]) <= 0) || r.roll[r.roll.length-1])[1];
+  }
+  if(!e.repeat && !r.again) S.done[e.id] = 1;
   if(r.t === "__minjae__") r = minjaeResult();
   if(r.hp) S.hp = clamp(S.hp + r.hp);
   if(r.san) S.san = clamp(S.san + r.san);
@@ -294,23 +331,27 @@ function minjaeResult(){
   if(S.flags.minjae_cold)   return { t:"민재는 당신을 노려보다 어깨를 부딪치며 지나갔다. 가방이 가벼워진 느낌이다.", hp:-1 };
   return { t:"민재는 경계하며 몇 마디를 나눈 뒤 자리를 떠났다. 서로 아무것도 얻지 못했다." };
 }
+function deathId(){ const k = "death_" + (S.region || "old"); return D.endings[k] ? k : "death"; }
 function afterEvent(ending){
   if(ending) return end(ending);
-  if(S.hp <= 0) return end("death");
+  if(S.hp <= 0) return end(deathId());
   if(S.san <= 0) return collapse();
   close(); render();
 }
 function collapse(){
   S.hp = clamp(S.hp - 2); S.san = 3; addLog("[정신 붕괴] 의식을 잃었다."); save();
-  if(S.hp <= 0) return end("death");
+  if(S.hp <= 0) return end(deathId());
   show(`<h2>정신 붕괴</h2><p>귀가 울린다. 벽의 얼룩이 사람 얼굴처럼 보이고, 숨소리가 낯선 곳에서 들려온다.\n\n정신을 차렸을 때는 한참이 지나 있었다. 무릎이 까져 있다.</p><div class="chips"><span>체력 -2</span><span>정신력 3으로 회복</span></div><button class="choice" id="ok">일어난다</button>`);
   $("#ok").onclick = () => { close(); render(); };
 }
+function endingsSeen(){ try{ return JSON.parse(localStorage.getItem("wasteland-endings")) || []; }catch(e){ return []; } }
 function end(id){
   S.over = id; save(); render(); SND.play("ending");
-  const e = D.endings[id];
+  const e = D.endings[id] || D.endings.death, seen = endingsSeen(), isNew = !seen.includes(id);
+  if(isNew){ seen.push(id); try{ localStorage.setItem("wasteland-endings", JSON.stringify(seen)); }catch(_){} }
+  const total = Object.keys(D.endings).length;
   scene({ title: e.title, pgs: pages(e.text), finish: el => {
-    el.innerHTML = `<button class="choice" id="again">처음부터 다시 시작</button>`; $("#again").onclick = restart; } });
+    el.innerHTML = `<div class="endcount">${isNew ? "새로운 엔딩 · " : ""}수집한 엔딩 ${seen.length} / ${total}</div><button class="choice" id="again">처음부터 다시 시작</button>`; $("#again").onclick = restart; } });
 }
 function restart(){ S = fresh(); save(); close(); showTitle(); }
 
@@ -319,6 +360,14 @@ function restart(){ S = fresh(); save(); close(); showTitle(); }
 // 아이템 이미지는 data/world.js의 items에 img:"assets/items/파일.png"를 지정하면 그 이미지를 쓰고, 없으면 아래 스케치 아이콘을 씁니다.
 const A = d => `<svg viewBox="0 0 48 48" aria-hidden="true"><g filter="url(#rough)">${d}</g></svg>`;
 const ITEM_ART = {
+  battery:    A('<rect x="6" y="14" width="32" height="20" rx="2"/><path d="M38 20h4v8h-4M12 20v8M18 24h8M30 20v8"/>'),
+  rope:       A('<path d="M8 36c6-18 10 6 16-10s10 6 16-12M8 42c6-18 10 6 16-10s10 6 16-12"/>'),
+  mask:       A('<path class="f" d="M7 17q17-9 34 0v12q-5 12-17 12T7 29z"/><circle cx="17" cy="29" r="4"/><circle cx="31" cy="29" r="4"/><path d="M19 36q5 3 10 0"/>'),
+  wrench:     A('<path class="f" d="M34 6a9 9 0 0 0-7 12L7 38l4 4 20-20a9 9 0 0 0 12-8l-6 4-4-1-1-5z"/>'),
+  fuel:       A('<path class="f" d="M10 12h22v30H10zM32 18l7 5v16"/><path d="M15 12V7h12v5M15 22h12M15 30h12"/>'),
+  water:      A('<path class="f" d="M19 6h10v6l5 5v25H14V17l5-5z"/><path d="M14 26h20M14 34h20"/>'),
+  badge:      A('<rect class="f" x="7" y="10" width="34" height="28" rx="3"/><circle cx="18" cy="21" r="5"/><path d="M11 33h14M28 18h8M28 24h8M28 30h5"/>'),
+  tape:       A('<rect class="f" x="5" y="13" width="38" height="24" rx="2"/><circle cx="17" cy="25" r="5.500"/><circle cx="31" cy="25" r="5.500"/><path d="M12 37l3-6h18l3 6"/>'),
   bandage:    A('<circle cx="22" cy="26" r="15"/><circle cx="22" cy="26" r="6"/><path d="M34 34l9 6M10 22l24 8"/>'),
   medicine:   A('<rect x="17" y="6" width="14" height="6"/><path class="f" d="M19 12v5l-6 8v16h22V25l-6-8v-5z"/><rect x="17" y="27" width="14" height="9"/><path d="M24 29v5M21.5 31.5h5"/>'),
   flashlight: A('<path class="f" d="M5 14l9 4v12l-9 4z"/><rect x="14" y="18" width="26" height="12" rx="2"/><path d="M20 18v12M5 6l4 5M2 24h5M5 42l4-5"/>'),
