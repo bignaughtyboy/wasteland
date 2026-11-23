@@ -13,6 +13,15 @@ const S = (id, place, title, text, choices, o = {}) => ({ id, place, type: "stor
 const O = (id, place, title, text, choices, o = {}) => ({ id, place, type: "random", weight: o.weight || 3, req: o.req, title, text, textLow: o.low, choices });
 const R = (id, place, title, text, choices, o = {}) => ({ id, place, type: "random", repeat: true, weight: o.weight || 3, req: o.req, title, text, textLow: o.low, choices });
 
+
+// ================= 단서 이벤트 (다음 지역으로 가는 길을 알려 주는 일회성 발견) =================
+// 아이템 desc/read 는 world.js 의 clue_* 항목에 있습니다. '무시한다'를 고르면 다음에 다시 나옵니다.
+const CLUE = (id, place, title, text, item, look, skip, w = 6, req) =>
+  O(id, place, title, text, [
+    c(look, { t:"종이를 펼쳐 천천히 읽는다. 글씨는 바랬지만 길을 가리키는 내용이 남아 있다.", give:[item] }),
+    c(skip, { t:"지금은 그럴 여유가 없다. 종이를 제자리에 두고 돌아선다.", again:true })
+  ], { weight:w, req });
+
 window.GAME_DATA.events = [
 
 // ================= 구도심 =================
@@ -1021,6 +1030,97 @@ R("rm_room", "top", "관측소 외곽 숙소",
     [2, { t:"침대 위에 가지런히 놓인 유품 앞에서 한참을 서 있었다.", san:-1 }],
     [2, { t:"벽장 안에서 방한복과 천을 찾았다.", give:["cloth","cloth"] }])),
   c("침대에 누워 잠시 쉰다.", { t:"차가운 침대에 몸을 누이고 눈을 감는다. 이곳에서 살았던 사람들의 숨결이 느껴지는 듯하다.", hp:1, san:1 })
- ], { weight:4 })
+ ], { weight:4 }),
+
+CLUE("clue_old_map", "convenience", "계산대 밑의 안내도", "계산대 밑에 접힌 종이 한 장이 끼어 있다. 구도심 일대를 그린 손그림 안내도다.", "clue_oldmap", "안내도를 펼쳐 본다.", "그냥 둔다."),
+CLUE("clue_ind_map", "smelter", "벽에 붙은 구내 약도", "제련소 벽에 비닐로 덮인 약도가 붙어 있다. 공장 전체가 화살표로 이어져 있다.", "clue_indmap", "약도를 떼어 읽는다.", "그냥 둔다."),
+CLUE("clue_lake_sign", "village", "녹슨 이정표", "물에 반쯤 잠긴 이정표가 비스듬히 서 있다. 화살표 아래에 글씨가 새겨져 있다.", "clue_lakesign", "새겨진 글씨를 옮겨 적는다.", "그냥 지나친다."),
+CLUE("clue_apt_note", "apt", "우편함의 쪽지", "뒤틀린 우편함 하나에서 접힌 쪽지가 삐져나와 있다. 이웃에게 남긴 메모 같다.", "clue_aptnote", "쪽지를 읽는다.", "그냥 둔다."),
+CLUE("clue_mall_flyer", "mall", "바닥에 떨어진 전단", "바닥 곳곳에 빛바랜 전단이 흩어져 있다. 한 장만 뒷면에 볼펜 글씨가 있다.", "clue_mallflyer", "전단을 주워 뒷면을 읽는다.", "그냥 둔다."),
+CLUE("clue_mtn_trail", "ridge", "철제 표지", "눈에 반쯤 묻힌 철제 표지가 바람에 삐걱거린다. 표지 아래 새겨진 글씨를 털어 낸다.", "clue_trailmark", "글씨를 옮겨 적는다.", "그냥 지나친다."),
 
 ];
+
+
+// ================= 단서 지급 + 밸런스 =================
+// 아래는 위 이벤트 데이터를 불러온 뒤 한 번 가공하는 블록입니다. 숫자만 바꿔서 난이도를 조절하세요.
+(function(){
+  const G = window.GAME_DATA, EV = G.events;
+
+  // 1) 줄거리 이벤트가 끝나면 다음 단계의 길을 알려 주는 단서를 쥐여 준다.
+  const CLUES = { s1_radio:"clue_radio", s2_records:"clue_records", ind_s1:"clue_ledger", ind_s3:"clue_powermap",
+    lake_s1:"clue_chart", lake_s2:"clue_lamplog", city_s1:"clue_notice", city_s2:"clue_cableplan",
+    mtn_s1:"clue_cabinnote", mtn_s2:"clue_cablelog", mtn_s3:"clue_topplan" };
+  const mapLeaf = (r, f) => r.roll ? { roll: r.roll.map(([w, x]) => [w, mapLeaf(x, f)]) } : f(r);
+  EV.forEach(e => { const it = CLUES[e.id]; if(!it) return;
+    e.choices.forEach(ch => { ch.result = mapLeaf(ch.result, r => (r.ending || r.again) ? r : Object.assign({}, r, {
+      give: (r.give || []).concat(it),
+      t: r.t + `\n\n알아낸 것을 쪽지로 정리해 가방에 넣었다. (가방 → ${G.items[it].name})` })); });
+  });
+
+  // 2) 지역별 밸런스. 값이 클수록 '후하다/위험하다'.
+  const REG = {}; for(const k in G.places) G.places[k].forEach(p => REG[p.id] = k);
+  const BAL = {
+    keep:   { old:.3,  ind:.28, lake:.22, city:.16, mtn:.12 },   // 소모품(통조림·물·붕대·천·부품) 드랍 확률 배율
+    heal:   { old:.8,  ind:.7,  lake:.55, city:.45, mtn:.35 },   // 회복 결과 확률 배율
+    danger: { old:1,   ind:1.3, lake:1.7, city:2.1, mtn:2.6 },   // 피해 결과 확률 배율
+    extra:  { old:{},  ind:{},  lake:{ san:1 }, city:{ hp:1, san:1 }, mtn:{ hp:1, san:1 } },  // 피해 결과의 추가 피해량
+    rare:   { can:1, water:1, scrap:.9, cloth:.9, bandage:.7, medicine:.55 }
+  };
+  const NEUTRAL = {
+    old:["한참을 뒤졌지만 쓸 만한 것은 이미 누군가 가져간 뒤였다.","먼지만 일어난다. 이번에는 빈손이다.","찾아낸 것은 쓸모없는 잡동사니뿐이었다."],
+    ind:["상자는 비어 있었고 바닥에는 기름때만 남아 있다.","녹슨 철판 사이를 뒤졌지만 건진 것이 없다.","누군가 이미 싹 쓸어 간 흔적만 있다."],
+    lake:["젖은 상자는 안쪽부터 썩어 있었다. 쓸 만한 것은 없다.","물에 불어 터진 잡동사니뿐이다.","빈손으로 물가를 돌아섰다."],
+    city:["이곳도 이미 약탈당했다. 빈 포장지만 굴러다닌다.","누군가 먼저 다녀갔다. 남은 것은 없다.","선반은 텅 비었고, 먼지 위에 발자국만 선명하다."],
+    mtn:["눈에 덮여 아무것도 찾을 수 없었다.","얼어붙은 상자는 열리지도 않는다. 시간만 허비했다.","바람이 모든 것을 쓸어 갔다. 빈손이다."]
+  };
+  const HURT = {
+    old:[{ t:"뒤지다가 유리 조각에 손끝을 베였다. 건진 것은 없다.", hp:-1 }],
+    ind:[{ t:"뒤지다가 날카로운 철판에 손을 베였다. 건진 것은 없다.", hp:-1 }],
+    lake:[{ t:"미끄러운 바닥에 발을 헛디뎌 물에 빠졌다. 건진 것은 없다.", hp:-1 }, { t:"물속에서 무언가 스치고 지나갔다. 서둘러 물러났지만 빈손이다.", san:-1 }],
+    city:[{ t:"약탈자의 눈을 피하느라 허둥대다 부딪혔다. 건진 것은 없다.", hp:-1 }, { t:"어디선가 누군가 지켜보는 기분이 든다. 서둘러 물러났지만 빈손이다.", san:-1 }],
+    mtn:[{ t:"손끝이 얼어붙었다. 건진 것은 없다.", hp:-2 }, { t:"눈보라 속에서 방향을 잃을 뻔했다. 빈손이다.", san:-1 }]
+  };
+  const REST_DUD = "잠시 앉아 숨을 골랐지만 마음이 편해지지 않는다. 한기만 스며든다.";
+  const CONS = ["can","water","scrap","cloth","bandage","medicine"];
+  const pick = a => a[Math.floor(Math.random() * a.length)];   // 가공은 로드 때 한 번이므로 문구는 고정된다
+  const prot = r => r.set || r.unlock || r.ending || r.take || r.again || r.t === "__minjae__";
+  const isDrop = r => !prot(r) && (r.give || []).some(i => CONS.includes(i));
+  const isHurt = r => (r.hp < 0 || r.san < 0);
+  const isHeal = r => !prot(r) && !(r.give || []).length && (r.hp > 0 || r.san > 0);
+  const rareOf = r => Math.min(...(r.give || []).filter(i => CONS.includes(i)).map(i => BAL.rare[i] || 1));
+  const hurtUp = (r, k) => { const x = BAL.extra[k]; if(!x || prot(r)) return r; const o = Object.assign({}, r);
+    if(r.hp < 0 && x.hp) o.hp = r.hp - x.hp; if(r.san < 0 && x.san) o.san = r.san - x.san; return o; };
+  const dud = (k, n) => ({ t: NEUTRAL[k][n % 3] });
+
+  EV.forEach((e, ei) => {
+    if(e.type === "story") return;
+    const k = REG[e.place]; if(!k) return;
+    const hasTake = e.choices.some(ch => JSON.stringify(ch.result).includes('"take"'));
+    e.choices.forEach((ch, ci) => {
+      const r0 = ch.result, n = ei + ci;
+      if(r0.roll){
+        const T = r0.roll.reduce((a, x) => a + x[0], 0); let removed = 0, any = false;
+        const br = r0.roll.map(([w, x]) => {
+          if(isDrop(x)){ any = true; const nw = w * BAL.keep[k] * rareOf(x); removed += w - nw; return [nw, x]; }
+          if(isHeal(x)){ const nw = w * BAL.heal[k]; removed += w - nw; return [nw, x]; }
+          if(isHurt(x)) return [w * BAL.danger[k], hurtUp(x, k)];
+          return [w, x];
+        });
+        if(removed > 0.01 && !(hasTake && any)){
+          const hd = HURT[k], hw = removed * (k === "old" ? 0.15 : 0.4);
+          br.push([removed - hw, dud(k, n)]); br.push([hw, hd[n % hd.length]]);
+        }
+        ch.result = { roll: br };
+      } else if(!prot(r0) && isDrop(r0) && !hasTake){
+        const kp = Math.min(0.9, BAL.keep[k] * rareOf(r0) * 1.3);   // 단독 결과는 조금 더 후하게 둔다 (일회성 보상 위주)
+        const hd = HURT[k];
+        ch.result = { roll: [[kp, r0], [(1 - kp) * 0.6, dud(k, n)], [(1 - kp) * 0.4, k === "old" ? dud(k, n + 1) : hd[n % hd.length]]] };
+      } else if(isHeal(r0)){
+        ch.result = { roll: [[BAL.heal[k], r0], [1 - BAL.heal[k], { t: REST_DUD, san: k === "old" ? 0 : -1 }]] };
+      } else if(isHurt(r0)){
+        ch.result = hurtUp(r0, k);
+      }
+    });
+  });
+})();
