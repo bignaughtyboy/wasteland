@@ -10,11 +10,12 @@ const norm = o => {
   if(o.day == null){ o.day = 1; o.act = ACT; if(o.started && !(o.flags||{}).intro){ o.flags = o.flags || {}; o.flags.intro = 1; } }  // 이전 버전 세이브 호환
   if(o.act == null) o.act = ACT;
   if(!o.view) o.view = "bunker";
+  if(!o.pity) o.pity = {};
   return o;
 };
 let S = norm(load()) || fresh();
 
-function fresh(){ return { started:false, unlocked:{}, hp:MAX, san:MAX, inv:[], flags:{}, done:{}, seen:{}, log:[], region:null, over:null, day:1, act:ACT, view:"bunker" }; }
+function fresh(){ return { started:false, unlocked:{}, hp:MAX, san:MAX, inv:[], flags:{}, done:{}, seen:{}, log:[], region:null, over:null, day:1, act:ACT, view:"bunker", pity:{} }; }
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 const clamp = v => Math.max(0, Math.min(MAX, v));
@@ -191,13 +192,14 @@ function scene({ title, art = "", pgs, finish }){
 }
 
 
-function chips(r){
+function chips(r, extra){
   const c = [], sg = v => (v>0 ? "+" : "") + v;
   if(r.hp)  c.push([`체력 ${sg(r.hp)}`, r.hp>0]);
   if(r.san) c.push([`정신력 ${sg(r.san)}`, r.san>0]);
-  (r.give||[]).forEach(i => c.push(["획득: "+iname(i), true]));
+  (r.give||[]).forEach(i => c.push([(D.items[i].clue ? "단서 획득: " : "획득: ")+iname(i), true]));
   (r.take||[]).forEach(i => c.push(["소모: "+iname(i), false]));
   (r.unlock||[]).forEach(id => c.push(["새 지역 해금: "+D.regions.find(x=>x.id===id).name, true]));
+  (extra||[]).forEach(x => c.push(x));
   return c.length ? `<div class="chips">${c.map(([t,p])=>`<span class="${p?"pos":""}">${t}</span>`).join("")}</div>` : "";
 }
 function addLog(t){ S.log.unshift(t); S.log = S.log.slice(0,60); }
@@ -207,9 +209,12 @@ function regionOf(placeId){ for(const k in D.places){ if(D.places[k].some(p => p
 // 이벤트 뽑기: ① 스토리 이벤트는 조건을 만족하면 일정 확률(chance)로만 ② 아주 낮은 확률로 "아무것도 없음" ③ 나머지는 가중치로 (직전에 본 이벤트는 피함)
 function pickEvent(placeId){
   const pool = D.events.filter(e => e.place===placeId && (e.repeat || !S.done[e.id]) && ok(e.req));
-  for(const e of pool.filter(e => e.type==="story" || e.type==="fixed")){
-    if(e.type==="fixed" || Math.random() < (e.chance == null ? 0.35 : e.chance)) return e;
+  const stories = pool.filter(e => e.type==="story" || e.type==="fixed");
+  const pity = Math.min((S.pity[placeId] || 0) * (D.pityStep || 0.1), D.pityMax || 0.35);   // 줄거리를 못 만난 횟수만큼 확률 보정
+  for(const e of stories){
+    if(e.type==="fixed" || Math.random() < Math.min(0.95, (e.chance == null ? 0.35 : e.chance) + pity)){ S.pity[placeId] = 0; return e; }
   }
+  if(stories.length) S.pity[placeId] = (S.pity[placeId] || 0) + 1;
   if(Math.random() < (D.fillerChance || 0)) return null;
   let rnd = pool.filter(e => e.type==="random" || e.type==="conditional");
   if(!rnd.length) return null;
@@ -313,7 +318,9 @@ function choose(e, c, art){
   if(r.hp) S.hp = clamp(S.hp + r.hp);
   if(r.san) S.san = clamp(S.san + r.san);
   (r.take||[]).forEach(i => { const k = S.inv.indexOf(i); if(k>=0) S.inv.splice(k,1); });
-  (r.give||[]).forEach(i => S.inv.push(i));
+  r = Object.assign({}, r, { give: (r.give||[]).filter(i => !(D.items[i].clue && S.inv.includes(i))) });   // 단서는 한 번만 얻는다
+  r.give.forEach(i => S.inv.push(i));
+  const amb = ambient(e, r);
   Object.assign(S.flags, r.set||{});
   (r.unlock||[]).forEach(id => S.unlocked[id] = 1);
   if((r.unlock||[]).length) SND.play("ending"); else if(r.hp < 0) SND.play("hurt"); else if(r.san < 0) SND.play("mind");
@@ -321,9 +328,20 @@ function choose(e, c, art){
   addLog(`[${e.title}] ${c.text}`);
   save();
   scene({ title: e.title, art, pgs: pages(r.t), finish: el => {
-    el.innerHTML = chips(r) + `<button class="choice" id="next">계속</button>`;
+    el.innerHTML = chips(r, amb) + `<button class="choice" id="next">계속</button>`;
     $("#next").onclick = () => afterEvent(r.ending);
   } });
+}
+// 후반 지역의 환경 피해: world.js 의 ambient 설정대로 탐험 때마다 확률적으로 체력·정신력이 깎인다.
+function ambient(e, r){
+  const a = D.ambient && D.ambient[regionOf(e.place)], out = [];
+  if(!a || r.ending || (r.unlock||[]).length) return out;
+  [["hp","체력"],["san","정신력"]].forEach(([k,nm]) => {
+    const x = a[k]; if(!x || Math.random() >= x.p) return;
+    S[k] = clamp(S[k] - x.n); out.push([`${x.why} ${nm} -${x.n}`, false]);
+  });
+  if(out.length) addLog(`[${e.title}] ${out.map(o => o[0]).join(", ")}`);
+  return out;
 }
 function minjaeResult(){
   S.flags.minjae_returned = 1;
@@ -378,6 +396,7 @@ const ITEM_ART = {
   can:        A('<ellipse cx="24" cy="12" rx="13" ry="4.5"/><path class="f" d="M11 12v24c0 2.5 5.8 4.5 13 4.5s13-2 13-4.5V12c0 2.5-5.8 4.5-13 4.5S11 14.500 11 12z"/><path d="M11 22c0 2.500 5.800 4.500 13 4.500S37 24.500 37 22M11 31c0 2.500 5.800 4.500 13 4.500S37 33.500 37 31"/>'),
   photo:      A('<rect x="7" y="9" width="34" height="30"/><rect x="12" y="14" width="24" height="19"/><circle cx="20" cy="21" r="3"/><path d="M12 33l9-7 6 4 5-5 4 8"/>'),
   note:       A('<path class="f" d="M11 5h19l9 9v29H11z"/><path d="M30 5v9h9M16 22h18M16 28h18M16 34h11"/>'),
+  map:        A('<path class="f" d="M6 10l12-4 12 4 12-4v32l-12 4-12-4-12 4z"/><path d="M18 6v32M30 10v32M10 20l5 4M34 18l4 5"/>'),
   unknown:    A('<path class="f" d="M7 17l17-9 17 9v19l-17 9-17-9z"/><path d="M7 17l17 9 17-9M24 26v19"/>')
 };
 const itemArt = id => { const it = D.items[id]; return it.img ? `<img src="${it.img}" alt="" draggable="false">` : (ITEM_ART[id] || ITEM_ART.unknown); };
@@ -412,9 +431,17 @@ function showInventory(){
 function itemIcon(id){
   const it = D.items[id];
   if(it.img) return `<img src="${it.img}" alt="" draggable="false">`;
+  const art = !it.icon && (ITEM_ART[id] || (it.kind && ITEM_ART[it.kind]) || (it.clue && ITEM_ART.note));
+  if(art) return art;
   return `<svg viewBox="0 0 32 32" aria-hidden="true">${it.icon || '<rect x="7" y="7" width="18" height="18" rx="2"/><path d="M13 14h6M13 18h4"/>'}</svg>`;
 }
 let bagSel = null;
+// 단서 아이템 자세히 보기: item.read 본문을 종이 쪽지처럼 보여 준다.
+function showClue(id){
+  const it = D.items[id];
+  show(`<h2>${it.name}</h2><div class="clue-paper">${it.read.split("\n\n").map(p => `<p>${p.replace(/\n/g,"<br>")}</p>`).join("")}</div>${it.hint ? `<div class="clue-hint">${it.hint}</div>` : ""}<button class="choice" id="x">돌아가기</button>`, "bag read");
+  $("#x").onclick = showBag;
+}
 function showBag(){
   const stacks = [];
   S.inv.forEach(id => { const st = stacks.find(x => x.id === id); st ? st.n++ : stacks.push({ id, n:1 }); });
@@ -426,11 +453,12 @@ function showBag(){
   }).join("");
   const it = bagSel && D.items[bagSel];
   const detail = it
-    ? `<div class="detail"><div><strong>${it.name}</strong><small>${it.desc}</small></div>${it.use ? `<button id="use">사용</button>` : ""}</div>`
+    ? `<div class="detail"><div><strong>${it.name}${it.clue ? ` <em class="clue-tag">단서</em>` : ""}</strong><small>${it.desc}</small></div>${it.use ? `<button id="use">사용</button>` : ""}${it.read ? `<button id="read">자세히</button>` : ""}</div>`
     : `<div class="detail"><small>가방이 비어 있다. 탐험에서 쓸 만한 물건을 찾아보자.</small></div>`;
   show(`<h2>가방 <small class="cnt">${S.inv.length}개</small></h2><div class="grid">${slots}</div>${detail}<button class="choice" id="x">닫기</button>`, "bag");
   $("#x").onclick = close;
   document.querySelectorAll(".slot.full").forEach(b => b.onclick = () => { bagSel = b.dataset.id; showBag(); });
+  if($("#read")) $("#read").onclick = () => showClue(bagSel);
   const use = $("#use");
   if(use) use.onclick = () => {
     const u = D.items[bagSel].use, k = S.inv.indexOf(bagSel);
