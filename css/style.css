@@ -395,3 +395,23 @@ body.low .art{filter:contrast(1.3) brightness(.82);animation:flick 4s steps(1) i
 #sheet.read .clue-hint{margin:0 0 16px;padding:10px 14px;border-left:3px solid var(--rust);font-size:14px;letter-spacing:.04em;opacity:.9}
 #sheet.read .grid{display:none}
 #sheet.read .choice{white-space:nowrap}
+
+/* ---- 엔딩 기록 ---- */
+#sheet.endings{width:min(600px,100%);padding-top:26px;padding-bottom:20px}
+#sheet.endings h3{margin:18px 0 10px;font-size:14px;letter-spacing:.14em;font-weight:600;opacity:.75}
+#sheet.endings h3 small,#sheet.endings h2 small{margin-left:8px;font-size:12px;opacity:.7;letter-spacing:.06em}
+.end-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.end-cell{position:relative;display:flex;align-items:center;gap:12px;min-height:40px;margin:0;padding:7px 12px;border:1.5px solid rgba(220,210,185,.5);border-radius:2px 6px 3px 6px;background:rgba(255,255,255,.05);color:inherit;text-align:left;font-size:15px}
+.end-cell b{flex:none;font-size:12px;letter-spacing:.08em;opacity:.55;font-weight:400}
+.end-cell span{flex:1;min-width:0;word-break:keep-all}
+.end-cell.open{cursor:pointer;transition:transform .12s,background .15s}
+.end-cell.open:hover{transform:translateY(-2px);background:rgba(255,255,255,.12)}
+.end-cell.locked{border-style:dashed;border-color:rgba(220,210,185,.25);background:rgba(0,0,0,.18);opacity:.6;letter-spacing:.2em}
+.end-cell.locked i{font-style:normal;font-size:13px;opacity:.7}
+#sheet.endings .end-note{margin:16px 0 8px;font-size:13px;opacity:.6;line-height:1.7}
+#sheet.endings.read .end-paper{margin:4px 0 14px;padding:20px 22px;border:1px solid rgba(43,42,39,.35);border-radius:2px;background:linear-gradient(#efe9d6,#e3dcc4);box-shadow:inset 0 0 22px rgba(120,100,60,.25),0 3px 10px rgba(0,0,0,.35)}
+#sheet.endings.read .end-paper p{margin:0 0 14px;color:#2b2a27;font-size:16px;line-height:1.9}
+#sheet.endings.read .end-paper p:last-child{margin:0}
+#sheet.endings .end-meta{margin:0 0 14px;font-size:13px;letter-spacing:.06em;opacity:.65}
+#sheet.endings .choice{white-space:nowrap;width:auto;margin-left:auto}
+@media(max-width:520px){.end-grid{grid-template-columns:1fr}}
