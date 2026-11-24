@@ -367,9 +367,31 @@ function end(id){
   S.over = id; save(); render(); SND.play("ending");
   const e = D.endings[id] || D.endings.death, seen = endingsSeen(), isNew = !seen.includes(id);
   if(isNew){ seen.push(id); try{ localStorage.setItem("wasteland-endings", JSON.stringify(seen)); }catch(_){} }
+  // 엔딩 기록: 처음 본 일차와 본 횟수를 남긴다.
+  const meta = endingMeta(), m = meta[id] || (meta[id] = { n:0, day:S.day });
+  m.n++; try{ localStorage.setItem("wasteland-endings-meta", JSON.stringify(meta)); }catch(_){}
   const total = Object.keys(D.endings).length;
   scene({ title: e.title, pgs: pages(e.text), finish: el => {
-    el.innerHTML = `<div class="endcount">${isNew ? "새로운 엔딩 · " : ""}수집한 엔딩 ${seen.length} / ${total}</div><button class="choice" id="again">처음부터 다시 시작</button>`; $("#again").onclick = restart; } });
+    el.innerHTML = `<div class="endcount">${isNew ? "새로운 엔딩 · " : ""}수집한 엔딩 ${seen.length} / ${total}</div><button class="choice" id="rec">엔딩 기록 보기</button><button class="choice" id="again">처음부터 다시 시작</button>`; $("#again").onclick = restart; $("#rec").onclick = () => showEndings(true); } });
+}
+function endingMeta(){ try{ return JSON.parse(localStorage.getItem("wasteland-endings-meta")) || {}; }catch(e){ return {}; } }
+// ---------- 엔딩 기록: 처음엔 전부 잠겨 있고, 본 엔딩만 하나씩 열린다 ----------
+function showEndings(fromEnd, openId){
+  const ids = Object.keys(D.endings), seen = endingsSeen(), meta = endingMeta();
+  if(openId){
+    const e = D.endings[openId], m = meta[openId];
+    show(`<h2>${e.title}</h2><div class="end-paper">${pages(e.text).map(t => `<p>${esc(t).replace(/\n/g,"<br>")}</p>`).join("")}</div>${m ? `<div class="end-meta">${m.day}일차에 처음 도달 · ${m.n}번 맞이함</div>` : ""}<button class="choice" id="x">목록으로</button>`, "endings read");
+    $("#x").onclick = () => showEndings(fromEnd);
+    return;
+  }
+  const cell = (id, i) => seen.includes(id)
+    ? `<button class="end-cell open" data-id="${id}"><b>${String(i+1).padStart(2,"0")}</b><span>${D.endings[id].title}</span></button>`
+    : `<div class="end-cell locked" aria-label="잠긴 엔딩"><b>${String(i+1).padStart(2,"0")}</b><span>? ? ?</span><i>🔒</i></div>`;
+  const dead = ids.map((id,i) => [id,i]).filter(([id]) => /^death/.test(id)), rest = ids.map((id,i) => [id,i]).filter(([id]) => !/^death/.test(id));
+  const sec = (name, arr) => `<h3>${name} <small>${arr.filter(([id]) => seen.includes(id)).length} / ${arr.length}</small></h3><div class="end-grid">${arr.map(([id,i]) => cell(id,i)).join("")}</div>`;
+  show(`<h2>엔딩 기록 <small class="cnt">${seen.filter(id => D.endings[id]).length} / ${ids.length}</small></h2>${sec("결말", rest)}${sec("쓰러진 기록", dead)}<p class="end-note">엔딩을 보면 이곳에 기록되고, 눌러서 다시 읽을 수 있다.</p><button class="choice" id="x">${fromEnd ? "처음으로" : "닫기"}</button>`, "endings");
+  $("#x").onclick = fromEnd ? restart : close;
+  document.querySelectorAll(".end-cell.open").forEach(b => b.onclick = () => { SND.play("click"); showEndings(fromEnd, b.dataset.id); });
 }
 function restart(){ S = fresh(); save(); close(); showTitle(); }
 
@@ -475,6 +497,7 @@ function showSettings(){
 }
 $("#btn-settings").onclick = showSettings;
 $("#t-settings").onclick = showSettings;
+$("#t-endings").onclick = () => showEndings(false);
 document.addEventListener("click", e => { if(e.target.closest("button:not(:disabled)")) SND.play("click"); });
 $("#btn-log").onclick = () => {
   show(`<h2>기록</h2>${S.log.length ? S.log.map(l=>`<div class="log-row">${l}</div>`).join("") : "<p>아직 기록이 없다.</p>"}<br><button class="choice" id="x">닫기</button>`);
