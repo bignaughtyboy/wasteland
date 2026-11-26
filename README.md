@@ -1,33 +1,45 @@
-# WASTELAND
+WASTELAND
 
-낡은 종이에 그린 흑백 스케치 스타일의 **텍스트 기반 탐험·생존 RPG**. 웹 브라우저에서 플레이하는 싱글 플레이 게임입니다.
+낡은 종이에 그린 흑백 스케치 스타일의 텍스트 기반 탐험·생존 RPG. 웹 브라우저에서 플레이하는 싱글 플레이 게임입니다.
 
 문명이 붕괴한 세계에서 지도를 보고 탐험할 장소를 고르고, 그곳에서 벌어지는 사건을 읽고 선택합니다. 선택은 체력·정신력·아이템·인물 관계와 엔딩에 영향을 줍니다.
 
-## 플레이
-
-- **웹**: GitHub Pages 주소에서 바로 실행
-- **로컬**: 저장소를 받아 `index.html`을 브라우저로 열기 (설치·서버 불필요)
+플레이
+웹: GitHub Pages 주소에서 바로 실행
+로컬: 저장소를 받아 index.html을 브라우저로 열기 (설치·서버 불필요)
 
 진행 상황은 브라우저에 자동 저장됩니다.
 
-## 현재 상태 (1차 프로토타입)
+현재 상태 (1차 프로토타입)
 
-구도심 1개 지역 · 탐험 장소 5 · 이벤트 13 (스토리 3 포함) · NPC 2 · 아이템 10 · 엔딩 3  
-나머지 4개 지역(산업지대, 호수, 신도시, 산악지대)은 개발 예정입니다.
+구도심 1개 지역 · 탐험 장소 5 · 이벤트 13 (스토리 3 포함) · NPC 2 · 아이템 10 · 엔딩 1(탐험 실패) 구도심 스토리를 끝내면 산업지대가 해금됩니다 (산업지대 콘텐츠는 개발 예정). 나머지 4개 지역(산업지대, 호수, 신도시, 산악지대)은 개발 예정입니다.
 
-## 구조
-
-```
-index.html       화면
+구조
+index.html       화면 (타이틀 + 게임)
+assets/world/    지도 이미지 (main_map_01.jpg)
 css/style.css    UI 스타일
 js/engine.js     게임 로직
+js/sound.js      효과음(WebAudio)·사운드 설정
 data/world.js    지역 · 장소 · 아이템 · 엔딩
 data/events.js   이벤트
-```
 
-콘텐츠는 `data/` 폴더만 수정하면 추가할 수 있습니다. 이벤트 형식은 `data/events.js` 상단 주석을 참고하세요.
+콘텐츠는 data/ 폴더만 수정하면 추가할 수 있습니다. 이벤트 형식은 data/events.js 상단 주석을 참고하세요.
 
-## 기술
+기술
 
 HTML / CSS / JavaScript (프레임워크·빌드 도구 없음)
+
+엔딩 화면 이미지
+
+엔딩마다 전용 이미지를 넣으려면 assets/endings/엔딩id.jpg 파일을 올리면 됩니다 (권장 1600×900, 16:9). 파일이 없으면 지도 확대 그림이 임시로 쓰입니다. 엔딩 id 목록은 data/world.js의 endings에 있습니다. (예: launch.jpg, death_mtn.jpg)
+
+리더보드 켜기 (선택)
+
+정적 사이트에는 서버가 없어서, 모두가 보는 리더보드에는 무료 Firebase Realtime Database가 필요합니다.
+
+https://console.firebase.google.com 에서 프로젝트를 만들고 Realtime Database를 생성합니다.
+규칙 탭에 아래를 붙여 넣고 게시합니다. (읽기는 공개, 쓰기는 새 기록 추가만 허용)
+{"rules":{"scores":{".read":true,"$id":{".write":"!data.exists()",".validate":"newData.hasChildren(['n','e','d','t']) && newData.child('n').isString() && newData.child('n').val().length<=12 && newData.child('e').isString() && newData.child('e').val().length<=24 && newData.child('d').isNumber() && newData.child('d').val()>=1 && newData.child('d').val()<=999 && newData.child('t').isNumber()"}}}}
+데이터 탭 상단의 주소(https://….firebaseio.com)를 data/world.js 맨 아래 leaderboard.url 에 넣습니다.
+
+비워 두면 기록은 이 브라우저에만 저장됩니다.
