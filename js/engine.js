@@ -364,23 +364,119 @@ function collapse(){
 }
 function endingsSeen(){ try{ return JSON.parse(localStorage.getItem("wasteland-endings")) || []; }catch(e){ return []; } }
 function end(id){
-  S.over = id; save(); render(); SND.play("ending");
+  S.over = id; save(); render(); close(); SND.play("ending");   // 열려 있던 이벤트 창을 닫고 엔딩 전용 화면으로 넘어간다
   const e = D.endings[id] || D.endings.death, seen = endingsSeen(), isNew = !seen.includes(id);
   if(isNew){ seen.push(id); try{ localStorage.setItem("wasteland-endings", JSON.stringify(seen)); }catch(_){} }
   // 엔딩 기록: 처음 본 일차와 본 횟수를 남긴다.
   const meta = endingMeta(), m = meta[id] || (meta[id] = { n:0, day:S.day });
   m.n++; try{ localStorage.setItem("wasteland-endings-meta", JSON.stringify(meta)); }catch(_){}
-  const total = Object.keys(D.endings).length;
-  scene({ title: e.title, pgs: pages(e.text), finish: el => {
-    el.innerHTML = `<div class="endcount">${isNew ? "새로운 엔딩 · " : ""}수집한 엔딩 ${seen.length} / ${total}</div><button class="choice" id="rec">엔딩 기록 보기</button><button class="choice" id="again">처음부터 다시 시작</button>`; $("#again").onclick = restart; $("#rec").onclick = () => showEndings(true); } });
+  endScreen(id, isNew, seen.length);
 }
+function restart(){ const el = $("#ending"); if(el) el.remove(); S = fresh(); save(); close(); showTitle(); }
+
+// ---------- 엔딩 연출: 전용 화면(이미지 + 본문 + 후일담 + 기록) ----------
+const pad2 = n => String(n).padStart(2, "0");
+function endArt(id, e, W = innerWidth, H = innerHeight){
+  const [r, pid] = e.place || ["old", "building"], p = (D.places[r] || []).find(x => x.id === pid) || {}, w = p.art || { x:50, y:50 };
+  // 화면 비율에 맞춰 지도를 확대해, 장소가 한가운데 오도록 자른다. assets/endings/<id>.jpg 가 있으면 그 이미지를 위에 깐다.
+  const z = Math.max(2.6, H / W / (D.mapAspect || 1.094) * 1.15 + 1.2), ar = D.mapAspect || 1.094, cl = v => Math.max(0, Math.min(100, v));
+  const px = cl((0.5 - w.x/100*z) / (1 - z) * 100), imgH = z * W * ar, py = cl((H/2 - w.y/100*imgH) / (H - imgH) * 100);
+  return `background-image:url(assets/endings/${id}.jpg),url(${D.worldMap});background-size:cover,${z*100}% auto;background-position:center,${px}% ${py}%;background-repeat:no-repeat`;
+}
+const paras = t => pages(t).map(x => `<p>${esc(x).replace(/\n/g,"<br>")}</p>`).join("");
+function nick(){ try{ return localStorage.getItem("wasteland-nick") || ""; }catch(e){ return ""; } }
+function endScreen(id, isNew, got){
+  const e = D.endings[id] || D.endings.death; id = D.endings[id] ? id : "death";
+  const ids = Object.keys(D.endings), total = ids.length, no = ids.indexOf(id) + 1, old = $("#ending"); if(old) old.remove();
+  const el = document.createElement("div"); el.id = "ending"; el.className = "tone-" + (e.tone || "quiet");
+  const dead = /^death/.test(id);
+  el.innerHTML = `<div class="e-img" style="${endArt(id, e)}"></div><div class="e-shade"></div><div class="e-bar t"></div><div class="e-bar b"></div>
+  <div class="e-scroll"><div class="e-body">
+    <div class="e-kicker e-seq">${dead ? "THE END" : "ENDING"} · ${pad2(no)} / ${pad2(total)}${isNew ? `<b>NEW</b>` : ""}</div>
+    <h1 class="e-seq">${e.title}</h1><div class="e-rule e-seq"></div>
+    <div class="e-text">${paras(e.text)}</div>
+    ${e.epilogue ? `<div class="e-sep e-seq">후일담</div><div class="e-epi">${paras(e.epilogue)}</div>` : ""}
+    <div class="e-stats e-seq"><div><small>도달</small><b>${S.day}일차</b></div><div><small>체력</small><b>${S.hp}</b></div><div><small>정신력</small><b>${S.san}</b></div><div><small>수집한 엔딩</small><b>${got} / ${total}</b></div></div>
+    <div class="e-share e-seq">
+      <input id="e-nick" maxlength="12" placeholder="닉네임 (2~12자)" value="${esc(nick())}" ${S.shared ? "disabled" : ""}>
+      <button id="e-post" ${S.shared ? "disabled" : ""}>${S.shared ? "기록 완료" : "리더보드에 기록"}</button>
+      <button id="e-copy">결과 복사</button>
+      <small id="e-msg">${LB.remote() ? "닉네임과 결과가 모두에게 공개됩니다." : "서버가 연결되지 않아 이 기기에만 기록됩니다."}</small>
+    </div>
+    <div class="e-actions e-seq"><button id="e-rec">엔딩 기록</button><button id="e-again" class="main">처음부터 다시 시작</button></div>
+  </div></div><div class="e-skip">화면을 눌러 건너뛰기</div>`;
+  document.body.appendChild(el);
+  let k = 0; const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  el.querySelectorAll(".e-seq, .e-text p, .e-epi p").forEach(n => { n.classList.add("e-seq"); n.style.setProperty("--d", (k++ * 1.25 + .6) + "s"); });
+  if(reduce) el.classList.add("skip");
+  const skip = ev => { if(ev.target.closest("button,input")) return; el.classList.add("skip"); };
+  el.addEventListener("click", skip);
+  setTimeout(() => el.classList.add("done"), (k * 1.25 + 2) * 1000);
+  $("#e-again").onclick = restart;
+  $("#e-rec").onclick = () => showEndings(true);
+  $("#e-copy").onclick = async () => {
+    const t = `WASTELAND · ${S.day}일차 · 「${e.title}」 엔딩 (${got}/${total})\n${location.href.split("#")[0]}`;
+    try{ await navigator.clipboard.writeText(t); $("#e-msg").textContent = "결과를 복사했다. 어디든 붙여 넣어 공유하자."; }
+    catch(_){ $("#e-msg").textContent = t.replace(/\n/g, "  "); }
+  };
+  $("#e-post").onclick = async () => {
+    const n = $("#e-nick").value.replace(/[<>&"]/g, "").trim();
+    if(n.length < 2){ $("#e-msg").textContent = "닉네임은 2자 이상 입력해 주세요."; return; }
+    try{ localStorage.setItem("wasteland-nick", n); }catch(_){}
+    $("#e-post").disabled = true; $("#e-msg").textContent = "기록하는 중…";
+    try{ await LB.submit(n, id, S.day); S.shared = 1; save(); $("#e-post").textContent = "기록 완료"; $("#e-nick").disabled = true;
+      $("#e-msg").textContent = LB.remote() ? "리더보드에 올렸다. 타이틀 화면에서 확인할 수 있다." : "이 기기의 기록에 저장했다."; }
+    catch(_){ $("#e-post").disabled = false; $("#e-msg").textContent = "기록하지 못했다. 잠시 뒤 다시 눌러 보자."; }
+  };
+}
+
+// ---------- 리더보드 ----------
+// data/world.js 의 leaderboard.url (Firebase Realtime Database 주소)이 있으면 공용, 없으면 이 기기 전용이다.
+const LB = {
+  remote: () => !!(D.leaderboard && D.leaderboard.url),
+  base: () => D.leaderboard.url.replace(/\/+$/, ""),
+  local(){ try{ return JSON.parse(localStorage.getItem("wasteland-board-local")) || []; }catch(e){ return []; } },
+  cache: null, at: 0,
+  async submit(n, e, d){
+    const row = { n, e, d, t: Date.now() }, mine = LB.local(); mine.push(row);
+    try{ localStorage.setItem("wasteland-board-local", JSON.stringify(mine.slice(-50))); }catch(_){}
+    if(LB.remote()){
+      const r = await fetch(LB.base() + "/scores.json", { method:"POST", body: JSON.stringify({ n, e, d, t: { ".sv":"timestamp" } }) });
+      if(!r.ok) throw new Error("post " + r.status);
+    }
+    LB.cache = null;
+  },
+  async list(){
+    if(!LB.remote()) return LB.local().slice().reverse();
+    if(LB.cache && Date.now() - LB.at < 30000) return LB.cache;
+    const lim = (D.leaderboard.limit || 60);
+    const r = await fetch(`${LB.base()}/scores.json?orderBy=%22$key%22&limitToLast=${lim}`);
+    if(!r.ok) throw new Error("get " + r.status);
+    const o = await r.json() || {};
+    LB.cache = Object.keys(o).sort().reverse().map(k => o[k]).filter(x => x && typeof x.n === "string" && D.endings[x.e] && +x.d > 0);
+    LB.at = Date.now(); return LB.cache;
+  }
+};
+let boardTab = "recent";
+async function drawBoard(host){
+  const tabs = `<div class="bd-tabs"><button data-t="recent" class="${boardTab==="recent"?"on":""}">최근</button><button data-t="fast" class="${boardTab==="fast"?"on":""}">빠른 생환</button></div>`;
+  host.innerHTML = `<div class="bd-head"><b>생존 기록</b><small>${LB.remote() ? "전체 기록" : "이 기기 기록"}</small></div>${tabs}<ol class="bd-list"><li class="bd-msg">불러오는 중…</li></ol>`;
+  host.querySelectorAll(".bd-tabs button").forEach(b => b.onclick = () => { boardTab = b.dataset.t; drawBoard(host); });
+  let rows; try{ rows = await LB.list(); }catch(e){ host.querySelector(".bd-list").innerHTML = `<li class="bd-msg">기록을 불러오지 못했다.</li>`; return; }
+  if(boardTab === "fast") rows = rows.filter(r => !/^death/.test(r.e)).sort((a, b) => a.d - b.d || (a.t||0) - (b.t||0));
+  rows = rows.slice(0, 12);
+  host.querySelector(".bd-list").innerHTML = rows.length ? rows.map((r, i) =>
+    `<li class="${/^death/.test(r.e) ? "dead" : ""}"><span class="rk">${i + 1}</span><span class="nm">${esc(String(r.n).slice(0, 12))}</span><span class="ed">${/^death/.test(r.e) ? "† " : ""}${D.endings[r.e].title}</span><span class="dy">${r.d}일차</span></li>`).join("")
+    : `<li class="bd-msg">${boardTab === "fast" ? "아직 생환 기록이 없다." : "아직 기록이 없다. 엔딩을 보고 첫 기록을 남겨 보자."}</li>`;
+}
+function showBoard(){ show(`<h2>리더보드</h2><div id="board-m" class="bd"></div><button class="choice" id="x">닫기</button>`, "endings board"); $("#x").onclick = close; drawBoard($("#board-m")); }
 function endingMeta(){ try{ return JSON.parse(localStorage.getItem("wasteland-endings-meta")) || {}; }catch(e){ return {}; } }
 // ---------- 엔딩 기록: 처음엔 전부 잠겨 있고, 본 엔딩만 하나씩 열린다 ----------
 function showEndings(fromEnd, openId){
   const ids = Object.keys(D.endings), seen = endingsSeen(), meta = endingMeta();
   if(openId){
     const e = D.endings[openId], m = meta[openId];
-    show(`<h2>${e.title}</h2><div class="end-paper">${pages(e.text).map(t => `<p>${esc(t).replace(/\n/g,"<br>")}</p>`).join("")}</div>${m ? `<div class="end-meta">${m.day}일차에 처음 도달 · ${m.n}번 맞이함</div>` : ""}<button class="choice" id="x">목록으로</button>`, "endings read");
+    show(`<div class="end-banner" style="${endArt(openId, e, 600, 150)}"></div><h2>${e.title}</h2><div class="end-paper">${paras(e.text)}${e.epilogue ? `<div class="end-sep">후일담</div>${paras(e.epilogue)}` : ""}</div>${m ? `<div class="end-meta">${m.day}일차에 처음 도달 · ${m.n}번 맞이함</div>` : ""}<button class="choice" id="x">목록으로</button>`, "endings read");
     $("#x").onclick = () => showEndings(fromEnd);
     return;
   }
@@ -393,7 +489,6 @@ function showEndings(fromEnd, openId){
   $("#x").onclick = fromEnd ? restart : close;
   document.querySelectorAll(".end-cell.open").forEach(b => b.onclick = () => { SND.play("click"); showEndings(fromEnd, b.dataset.id); });
 }
-function restart(){ S = fresh(); save(); close(); showTitle(); }
 
 // ---------- 가방 / 기록 ----------
 // ---------- 가방: 격자 + 아이템 이미지 ----------
@@ -498,6 +593,7 @@ function showSettings(){
 $("#btn-settings").onclick = showSettings;
 $("#t-settings").onclick = showSettings;
 $("#t-endings").onclick = () => showEndings(false);
+$("#t-board").onclick = showBoard;
 document.addEventListener("click", e => { if(e.target.closest("button:not(:disabled)")) SND.play("click"); });
 $("#btn-log").onclick = () => {
   show(`<h2>기록</h2>${S.log.length ? S.log.map(l=>`<div class="log-row">${l}</div>`).join("") : "<p>아직 기록이 없다.</p>"}<br><button class="choice" id="x">닫기</button>`);
@@ -510,6 +606,7 @@ function showTitle(){
   const sv = load();
   $("#t-continue").hidden = !(sv && sv.started && !sv.over);
   $("#title").classList.remove("hide");
+  drawBoard($("#board"));
 }
 function bunkerBg(){
   const img = D.bunker && D.bunker.img;
