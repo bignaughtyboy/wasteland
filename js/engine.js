@@ -54,6 +54,8 @@ function flash(sel, cls){ const el = $(sel); el.classList.remove("hit","gain"); 
 })();
 function stateOf(list, v){ const s = list && list.find(x => v>=x[0] && v<=x[1]); return s ? s[2] : ""; }
 function render(){
+  { const g = [...S.inv].reverse().map(i => D.items[i]).find(it => it && it.clue && it.hint), el = $("#bk-goal");
+    if(el) el.innerHTML = S.flags.intro ? `<small>${g ? "다음 단서" : "목표"}</small>${esc(g ? g.hint.replace(/^다음 단서 → /, "") : "밖으로 나가 단서를 찾자.")}` : ""; }
   const bar = (v,id) => { $(id).innerHTML = Array.from({length:MAX},(_,i)=>`<b class="${i<v?'on':''}"></b>`).join(""); };
   bar(S.hp,"#hp-bar"); bar(S.san,"#san-bar");
   if(prev){
@@ -144,7 +146,7 @@ function renderMap(){
     const pl = D.places[n.id];
     const sub = reg ? "" : locked ? "잠김" : (S.unlocked[n.id] && !S.seen[n.id]) ? "새 지역" : pl ? "" : "준비 중";
     b.innerHTML = `<span class="sign"><span class="ic">${locked ? ICON.lock : ICON[n.icon || (reg ? "dot" : "pin")]}</span><span class="lb"><span class="nm">${n.name}</span>${sub ? `<span class="stt">${sub}</span>` : ""}</span></span>`;
-    b.style.left = n.x + "%"; b.style.top = n.y + "%";
+    b.style.left = Math.min(88, Math.max(12, n.x)) + "%"; b.style.top = Math.min(90, Math.max(8, n.y)) + "%";
     b.disabled = locked;
     b.setAttribute("aria-label", locked ? n.name + " (잠김)" : n.name);
     b.onclick = () => reg ? explore(n) : (D.places[n.id] ? (S.seen[n.id] = 1, S.region = n.id, save(), render()) : soon(n));
@@ -315,6 +317,9 @@ function choose(e, c, art){
   }
   if(!e.repeat && !r.again) S.done[e.id] = 1;
   if(r.t === "__minjae__") r = minjaeResult();
+  if(Array.isArray(r.t)) r = Object.assign({}, r, { t: r.t[Math.floor(Math.random() * r.t.length)] });   // 문구 여러 개 중 하나
+  let newClue = null;   // 줄거리가 쥐여 주는 단서: 이미 가졌으면 지급도 안내문도 없다
+  if(r.clue && !S.inv.includes(r.clue)){ newClue = r.clue; r = Object.assign({}, r, { give: (r.give||[]).concat(r.clue), t: r.t + `\n\n알아낸 것을 쪽지로 정리해 가방에 넣었다. (가방 → ${D.items[r.clue].name})` }); }
   if(r.hp) S.hp = clamp(S.hp + r.hp);
   if(r.san) S.san = clamp(S.san + r.san);
   (r.take||[]).forEach(i => { const k = S.inv.indexOf(i); if(k>=0) S.inv.splice(k,1); });
@@ -335,7 +340,7 @@ function choose(e, c, art){
 // 후반 지역의 환경 피해: world.js 의 ambient 설정대로 탐험 때마다 확률적으로 체력·정신력이 깎인다.
 function ambient(e, r){
   const a = D.ambient && D.ambient[regionOf(e.place)], out = [];
-  if(!a || r.ending || (r.unlock||[]).length) return out;
+  if(!a || e.type === "story" || r.safe || r.ending || (r.unlock||[]).length) return out;
   [["hp","체력"],["san","정신력"]].forEach(([k,nm]) => {
     const x = a[k]; if(!x || Math.random() >= x.p) return;
     S[k] = clamp(S[k] - x.n); out.push([`${x.why} ${nm} -${x.n}`, false]);
@@ -381,37 +386,35 @@ function endArt(id, e, W = innerWidth, H = innerHeight){
   // 화면 비율에 맞춰 지도를 확대해, 장소가 한가운데 오도록 자른다. assets/endings/<id>.jpg 가 있으면 그 이미지를 위에 깐다.
   const z = Math.max(2.6, H / W / (D.mapAspect || 1.094) * 1.15 + 1.2), ar = D.mapAspect || 1.094, cl = v => Math.max(0, Math.min(100, v));
   const px = cl((0.5 - w.x/100*z) / (1 - z) * 100), imgH = z * W * ar, py = cl((H/2 - w.y/100*imgH) / (H - imgH) * 100);
-  return `background-image:url(assets/endings/${id}.jpg),url(${D.worldMap});background-size:cover,${z*100}% auto;background-position:center,${px}% ${py}%;background-repeat:no-repeat`;
+  const own = (D.endingImages || []).includes(id);   // 전용 이미지를 올린 엔딩만 요청한다 (없는 파일을 요청해 404 가 나지 않도록)
+  return `background-image:${own ? `url(assets/endings/${id}.jpg),` : ""}url(${D.worldMap});background-size:${own ? "cover," : ""}${z*100}% auto;background-position:${own ? "center," : ""}${px}% ${py}%;background-repeat:no-repeat`;
 }
 const paras = t => pages(t).map(x => `<p>${esc(x).replace(/\n/g,"<br>")}</p>`).join("");
-function nick(){ try{ return localStorage.getItem("wasteland-nick") || ""; }catch(e){ return ""; } }
 function endScreen(id, isNew, got){
   const e = D.endings[id] || D.endings.death; id = D.endings[id] ? id : "death";
   const ids = Object.keys(D.endings), total = ids.length, no = ids.indexOf(id) + 1, old = $("#ending"); if(old) old.remove();
   const el = document.createElement("div"); el.id = "ending"; el.className = "tone-" + (e.tone || "quiet");
-  const dead = /^death/.test(id);
+  el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", e.title); el.tabIndex = -1;
   el.innerHTML = `<div class="e-img" style="${endArt(id, e)}"></div><div class="e-shade"></div><div class="e-bar t"></div><div class="e-bar b"></div>
   <div class="e-scroll"><div class="e-body">
-    <div class="e-kicker e-seq">${dead ? "THE END" : "ENDING"} · ${pad2(no)} / ${pad2(total)}${isNew ? `<b>NEW</b>` : ""}</div>
-    <h1 class="e-seq">${e.title}</h1><div class="e-rule e-seq"></div>
+    <div class="e-kicker">${e.dead ? "THE END" : "ENDING"} · ${pad2(no)} / ${pad2(total)}${isNew ? `<b>NEW</b>` : ""}</div>
+    <h1>${e.title}</h1><div class="e-rule"></div>
     <div class="e-text">${paras(e.text)}</div>
-    ${e.epilogue ? `<div class="e-sep e-seq">후일담</div><div class="e-epi">${paras(e.epilogue)}</div>` : ""}
-    <div class="e-stats e-seq"><div><small>도달</small><b>${S.day}일차</b></div><div><small>체력</small><b>${S.hp}</b></div><div><small>정신력</small><b>${S.san}</b></div><div><small>수집한 엔딩</small><b>${got} / ${total}</b></div></div>
-    <div class="e-share e-seq">
-      <input id="e-nick" maxlength="12" placeholder="닉네임 (2~12자)" value="${esc(nick())}" ${S.shared ? "disabled" : ""}>
-      <button id="e-post" ${S.shared ? "disabled" : ""}>${S.shared ? "기록 완료" : "리더보드에 기록"}</button>
-      <button id="e-copy">결과 복사</button>
-      <small id="e-msg">${LB.remote() ? "닉네임과 결과가 모두에게 공개됩니다." : "서버가 연결되지 않아 이 기기에만 기록됩니다."}</small>
-    </div>
-    <div class="e-actions e-seq"><button id="e-rec">엔딩 기록</button><button id="e-again" class="main">처음부터 다시 시작</button></div>
-  </div></div><div class="e-skip">화면을 눌러 건너뛰기</div>`;
+    ${e.epilogue ? `<div class="e-sep">후일담</div><div class="e-epi">${paras(e.epilogue)}</div>` : ""}
+    <div class="e-stats"><div><small>도달</small><b>${S.day}일차</b></div><div><small>체력</small><b>${S.hp}</b></div><div><small>정신력</small><b>${S.san}</b></div><div><small>수집한 엔딩</small><b>${got} / ${total}</b></div></div>
+    <div class="e-actions"><button id="e-copy">결과 복사</button><button id="e-rec">엔딩 기록</button><button id="e-again" class="main">처음부터 다시 시작</button></div>
+    <small id="e-msg" role="status"></small>
+  </div></div><div class="e-skip">화면을 누르거나 Enter 로 건너뛰기</div>`;
   document.body.appendChild(el);
-  let k = 0; const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  el.querySelectorAll(".e-seq, .e-text p, .e-epi p").forEach(n => { n.classList.add("e-seq"); n.style.setProperty("--d", (k++ * 1.25 + .6) + "s"); });
-  if(reduce) el.classList.add("skip");
-  const skip = ev => { if(ev.target.closest("button,input")) return; el.classList.add("skip"); };
-  el.addEventListener("click", skip);
-  setTimeout(() => el.classList.add("done"), (k * 1.25 + 2) * 1000);
+  // 한 줄씩 나타나게 하되, 전체 연출은 8초 안쪽으로 끝낸다.
+  const seq = [...el.querySelectorAll(".e-kicker, h1, .e-rule, .e-text p, .e-sep, .e-epi p, .e-stats, .e-actions")], step = Math.min(1.1, 7 / seq.length);
+  seq.forEach((n, k) => { n.classList.add("e-seq"); n.style.setProperty("--d", (k * step + .5) + "s"); });
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const finish = () => { el.classList.add("skip", "done"); const b = $("#e-again"); if(b && document.activeElement === el) b.focus({ preventScroll:true }); };
+  if(reduce) finish(); else setTimeout(() => el.classList.add("done"), (seq.length * step + 1.8) * 1000);
+  el.addEventListener("click", ev => { if(!ev.target.closest("button")) finish(); });
+  el.addEventListener("keydown", ev => { if(ev.key === "Enter" || ev.key === " " || ev.key === "Escape"){ if(!el.classList.contains("skip")){ ev.preventDefault(); finish(); } } });
+  el.focus({ preventScroll:true });
   $("#e-again").onclick = restart;
   $("#e-rec").onclick = () => showEndings(true);
   $("#e-copy").onclick = async () => {
@@ -419,57 +422,7 @@ function endScreen(id, isNew, got){
     try{ await navigator.clipboard.writeText(t); $("#e-msg").textContent = "결과를 복사했다. 어디든 붙여 넣어 공유하자."; }
     catch(_){ $("#e-msg").textContent = t.replace(/\n/g, "  "); }
   };
-  $("#e-post").onclick = async () => {
-    const n = $("#e-nick").value.replace(/[<>&"]/g, "").trim();
-    if(n.length < 2){ $("#e-msg").textContent = "닉네임은 2자 이상 입력해 주세요."; return; }
-    try{ localStorage.setItem("wasteland-nick", n); }catch(_){}
-    $("#e-post").disabled = true; $("#e-msg").textContent = "기록하는 중…";
-    try{ await LB.submit(n, id, S.day); S.shared = 1; save(); $("#e-post").textContent = "기록 완료"; $("#e-nick").disabled = true;
-      $("#e-msg").textContent = LB.remote() ? "리더보드에 올렸다. 타이틀 화면에서 확인할 수 있다." : "이 기기의 기록에 저장했다."; }
-    catch(_){ $("#e-post").disabled = false; $("#e-msg").textContent = "기록하지 못했다. 잠시 뒤 다시 눌러 보자."; }
-  };
 }
-
-// ---------- 리더보드 ----------
-// data/world.js 의 leaderboard.url (Firebase Realtime Database 주소)이 있으면 공용, 없으면 이 기기 전용이다.
-const LB = {
-  remote: () => !!(D.leaderboard && D.leaderboard.url),
-  base: () => D.leaderboard.url.replace(/\/+$/, ""),
-  local(){ try{ return JSON.parse(localStorage.getItem("wasteland-board-local")) || []; }catch(e){ return []; } },
-  cache: null, at: 0,
-  async submit(n, e, d){
-    const row = { n, e, d, t: Date.now() }, mine = LB.local(); mine.push(row);
-    try{ localStorage.setItem("wasteland-board-local", JSON.stringify(mine.slice(-50))); }catch(_){}
-    if(LB.remote()){
-      const r = await fetch(LB.base() + "/scores.json", { method:"POST", body: JSON.stringify({ n, e, d, t: { ".sv":"timestamp" } }) });
-      if(!r.ok) throw new Error("post " + r.status);
-    }
-    LB.cache = null;
-  },
-  async list(){
-    if(!LB.remote()) return LB.local().slice().reverse();
-    if(LB.cache && Date.now() - LB.at < 30000) return LB.cache;
-    const lim = (D.leaderboard.limit || 60);
-    const r = await fetch(`${LB.base()}/scores.json?orderBy=%22$key%22&limitToLast=${lim}`);
-    if(!r.ok) throw new Error("get " + r.status);
-    const o = await r.json() || {};
-    LB.cache = Object.keys(o).sort().reverse().map(k => o[k]).filter(x => x && typeof x.n === "string" && D.endings[x.e] && +x.d > 0);
-    LB.at = Date.now(); return LB.cache;
-  }
-};
-let boardTab = "recent";
-async function drawBoard(host){
-  const tabs = `<div class="bd-tabs"><button data-t="recent" class="${boardTab==="recent"?"on":""}">최근</button><button data-t="fast" class="${boardTab==="fast"?"on":""}">빠른 생환</button></div>`;
-  host.innerHTML = `<div class="bd-head"><b>생존 기록</b><small>${LB.remote() ? "전체 기록" : "이 기기 기록"}</small></div>${tabs}<ol class="bd-list"><li class="bd-msg">불러오는 중…</li></ol>`;
-  host.querySelectorAll(".bd-tabs button").forEach(b => b.onclick = () => { boardTab = b.dataset.t; drawBoard(host); });
-  let rows; try{ rows = await LB.list(); }catch(e){ host.querySelector(".bd-list").innerHTML = `<li class="bd-msg">기록을 불러오지 못했다.</li>`; return; }
-  if(boardTab === "fast") rows = rows.filter(r => !/^death/.test(r.e)).sort((a, b) => a.d - b.d || (a.t||0) - (b.t||0));
-  rows = rows.slice(0, 12);
-  host.querySelector(".bd-list").innerHTML = rows.length ? rows.map((r, i) =>
-    `<li class="${/^death/.test(r.e) ? "dead" : ""}"><span class="rk">${i + 1}</span><span class="nm">${esc(String(r.n).slice(0, 12))}</span><span class="ed">${/^death/.test(r.e) ? "† " : ""}${D.endings[r.e].title}</span><span class="dy">${r.d}일차</span></li>`).join("")
-    : `<li class="bd-msg">${boardTab === "fast" ? "아직 생환 기록이 없다." : "아직 기록이 없다. 엔딩을 보고 첫 기록을 남겨 보자."}</li>`;
-}
-function showBoard(){ show(`<h2>리더보드</h2><div id="board-m" class="bd"></div><button class="choice" id="x">닫기</button>`, "endings board"); $("#x").onclick = close; drawBoard($("#board-m")); }
 function endingMeta(){ try{ return JSON.parse(localStorage.getItem("wasteland-endings-meta")) || {}; }catch(e){ return {}; } }
 // ---------- 엔딩 기록: 처음엔 전부 잠겨 있고, 본 엔딩만 하나씩 열린다 ----------
 function showEndings(fromEnd, openId){
@@ -483,7 +436,7 @@ function showEndings(fromEnd, openId){
   const cell = (id, i) => seen.includes(id)
     ? `<button class="end-cell open" data-id="${id}"><b>${String(i+1).padStart(2,"0")}</b><span>${D.endings[id].title}</span></button>`
     : `<div class="end-cell locked" aria-label="잠긴 엔딩"><b>${String(i+1).padStart(2,"0")}</b><span>? ? ?</span><i>🔒</i></div>`;
-  const dead = ids.map((id,i) => [id,i]).filter(([id]) => /^death/.test(id)), rest = ids.map((id,i) => [id,i]).filter(([id]) => !/^death/.test(id));
+  const dead = ids.map((id,i) => [id,i]).filter(([id]) => D.endings[id].dead), rest = ids.map((id,i) => [id,i]).filter(([id]) => !D.endings[id].dead);
   const sec = (name, arr) => `<h3>${name} <small>${arr.filter(([id]) => seen.includes(id)).length} / ${arr.length}</small></h3><div class="end-grid">${arr.map(([id,i]) => cell(id,i)).join("")}</div>`;
   show(`<h2>엔딩 기록 <small class="cnt">${seen.filter(id => D.endings[id]).length} / ${ids.length}</small></h2>${sec("결말", rest)}${sec("쓰러진 기록", dead)}<p class="end-note">엔딩을 보면 이곳에 기록되고, 눌러서 다시 읽을 수 있다.</p><button class="choice" id="x">${fromEnd ? "처음으로" : "닫기"}</button>`, "endings");
   $("#x").onclick = fromEnd ? restart : close;
@@ -570,12 +523,13 @@ function showBag(){
   }).join("");
   const it = bagSel && D.items[bagSel];
   const detail = it
-    ? `<div class="detail"><div><strong>${it.name}${it.clue ? ` <em class="clue-tag">단서</em>` : ""}</strong><small>${it.desc}</small></div>${it.use ? `<button id="use">사용</button>` : ""}${it.read ? `<button id="read">자세히</button>` : ""}</div>`
+    ? `<div class="detail"><div><strong>${it.name}${it.clue ? ` <em class="clue-tag">단서</em>` : ""}</strong><small>${it.desc}</small></div>${it.use ? `<button id="use">사용</button>` : ""}${it.read ? `<button id="read">자세히</button>` : ""}${it.craft && S.inv.filter(x => x === bagSel).length >= it.craft.need ? `<button id="craft">${it.craft.label}</button>` : ""}</div>`
     : `<div class="detail"><small>가방이 비어 있다. 탐험에서 쓸 만한 물건을 찾아보자.</small></div>`;
   show(`<h2>가방 <small class="cnt">${S.inv.length}개</small></h2><div class="grid">${slots}</div>${detail}<button class="choice" id="x">닫기</button>`, "bag");
   $("#x").onclick = close;
   document.querySelectorAll(".slot.full").forEach(b => b.onclick = () => { bagSel = b.dataset.id; showBag(); });
   if($("#read")) $("#read").onclick = () => showClue(bagSel);
+  if($("#craft")) $("#craft").onclick = () => { const cr = D.items[bagSel].craft; for(let n = 0; n < cr.need; n++) S.inv.splice(S.inv.indexOf(bagSel), 1); S.inv.push(cr.to); addLog(`${iname(bagSel)} ${cr.need}개로 ${iname(cr.to)} 제작`); SND.play("item"); save(); render(); bagSel = cr.to; showBag(); };
   const use = $("#use");
   if(use) use.onclick = () => {
     const u = D.items[bagSel].use, k = S.inv.indexOf(bagSel);
@@ -593,7 +547,6 @@ function showSettings(){
 $("#btn-settings").onclick = showSettings;
 $("#t-settings").onclick = showSettings;
 $("#t-endings").onclick = () => showEndings(false);
-$("#t-board").onclick = showBoard;
 document.addEventListener("click", e => { if(e.target.closest("button:not(:disabled)")) SND.play("click"); });
 $("#btn-log").onclick = () => {
   show(`<h2>기록</h2>${S.log.length ? S.log.map(l=>`<div class="log-row">${l}</div>`).join("") : "<p>아직 기록이 없다.</p>"}<br><button class="choice" id="x">닫기</button>`);
@@ -606,7 +559,6 @@ function showTitle(){
   const sv = load();
   $("#t-continue").hidden = !(sv && sv.started && !sv.over);
   $("#title").classList.remove("hide");
-  drawBoard($("#board"));
 }
 function bunkerBg(){
   const img = D.bunker && D.bunker.img;
