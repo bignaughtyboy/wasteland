@@ -11,17 +11,20 @@ const norm = o => {
   if(o.act == null) o.act = ACT;
   if(!o.view) o.view = "bunker";
   if(!o.pity) o.pity = {};
-  if(!o.route) o.route = ["old","ind","lake","city","mtn"];   // 이전 버전 세이브는 원래 순서 그대로
+  if(!o.route){ o.route = ["old","ind","lake","city","mtn"]; o.unlocked.old = 1; o.flags = o.flags || {}; o.flags.start_old = 1; }   // 이전 버전 세이브는 원래 순서 그대로
+  if(!o.at) o.at = {};
   return o;
 };
 let S = norm(load()) || fresh();
+const applyRoute = () => { if(D.rebalance) D.rebalance(S.route); };   // 이번 판의 지역 순서에 맞춰 이벤트 밸런스를 다시 계산
+applyRoute();
 
 // ---------- 판마다 달라지는 지역 순서 ----------
 // 구도심에서 시작해 산악지대(관측소)로 끝나고, 사이의 세 지역(산업지대·호수·신도시)은 새 게임마다 순서가 섞인다.
 function makeRoute(){
-  const mid = ["ind","lake","city"];
+  const mid = ["old","ind","lake","city"];   // 시작 지역도 매 판 달라진다. 산악지대(관측소)만 항상 마지막.
   for(let i = mid.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [mid[i], mid[j]] = [mid[j], mid[i]]; }
-  return ["old", ...mid, "mtn"];
+  return [...mid, "mtn"];
 }
 const REG = id => D.regions.find(r => r.id === id);
 // 지도 위 좌표로 두 지역 사이의 방위를 구한다 (위쪽이 북). 단서는 지역 이름 대신 이 방위와 풍경(land)만 알려 준다.
@@ -51,7 +54,7 @@ function tx(str, rid){
   });
 }
 const stageOf = rid => (S.route || []).indexOf(rid);
-function fresh(){ return { route:makeRoute(), started:false, unlocked:{}, hp:MAX, san:MAX, inv:[], flags:{}, done:{}, seen:{}, log:[], region:null, over:null, day:1, act:ACT, view:"bunker", pity:{} }; }
+function fresh(){ const route = makeRoute(); return { route, at:{}, started:false, unlocked:{ [route[0]]:1 }, hp:MAX, san:MAX, inv:[], flags:{ ["start_" + route[0]]:1 }, done:{}, seen:{}, log:[], region:null, over:null, day:1, act:ACT, view:"bunker", pity:{} }; }
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 const clamp = v => Math.max(0, Math.min(MAX, v));
@@ -66,6 +69,7 @@ function ok(r){
   if(r.anyItems && !r.anyItems.some(i => S.inv.includes(i))) return false;
   if(r.san && (S.san < r.san[0] || S.san > r.san[1])) return false;
   if(r.day && (S.day < r.day[0] || S.day > r.day[1])) return false;
+  if(r.later && !r.later.every(id => S.at && S.at[id] != null && S.at[id] < stageOf(S.region))) return false;   // 앞 사건보다 '뒤에 간 지역'에서만
   return true;
 }
 function need(r){
@@ -250,7 +254,7 @@ function regionOf(placeId){ for(const k in D.places){ if(D.places[k].some(p => p
 // 이벤트 뽑기: ① 스토리 이벤트는 조건을 만족하면 일정 확률(chance)로만 ② 아주 낮은 확률로 "아무것도 없음" ③ 나머지는 가중치로 (직전에 본 이벤트는 피함)
 function pickEvent(placeId){
   const st = stageOf(regionOf(placeId));   // e.stage: 이번 판의 n번째 지역 어디서든 나오는 인물 이벤트
-  const pool = D.events.filter(e => (e.place===placeId || (e.stage != null && (Array.isArray(e.stage) ? e.stage.includes(st) : e.stage === st))) && (e.repeat || !S.done[e.id]) && ok(e.req));
+  const pool = D.events.filter(e => (e.place===placeId || (e.stage != null && (e.stage === "*" || (Array.isArray(e.stage) ? e.stage.includes(st) : e.stage === st)))) && (e.repeat || !S.done[e.id]) && ok(e.req));
   const stories = pool.filter(e => e.type==="story" || e.type==="fixed");
   const pity = Math.min((S.pity[placeId] || 0) * (D.pityStep || 0.1), D.pityMax || 0.35);   // 줄거리를 못 만난 횟수만큼 확률 보정
   for(const e of stories){
@@ -308,8 +312,9 @@ $("#bk-sleep").onclick = confirmSleep;
 $("#bk-inv").onclick = () => $("#btn-inv").click();
 $("#bk-log").onclick = () => $("#btn-log").click();
 function showIntro(){
-  const items = (D.start && D.start.items) || [];
-  scene({ title: "WASTELAND", art: bunkerArt(), pgs: pages(D.intro), finish: el => {
+  const st0 = S.route[0], items = ((D.start && D.start.items) || []).concat((D.startItems && D.startItems[st0]) || []);
+  const startPg = D.startLines && D.startLines[st0] ? pages(D.startLines[st0]) : [];
+  scene({ title: "WASTELAND", art: bunkerArt(), pgs: pages(D.intro).concat(startPg), finish: el => {
     el.innerHTML = `<div class="chips">${items.map(i => `<span class="pos">획득: ${iname(i)}</span>`).join("")}<span class="pos">활동력 ${ACT}</span></div><button class="choice" id="ok">눈을 뜬다</button>`;
     $("#ok").onclick = () => { items.forEach(i => S.inv.push(i)); S.flags.intro = 1; S.act = ACT; addLog("벙커에서 눈을 떴다. 1일차."); SND.play("item"); save(); close(); render(); };
   } });
@@ -380,7 +385,8 @@ function choose(e, c, art, cont, rid0){
     let t = Math.random() * r.roll.reduce((a,x) => a + x[0], 0);
     r = (r.roll.find(x => (t -= x[0]) <= 0) || r.roll[r.roll.length-1])[1];
   }
-  if(!e.repeat && !r.again) S.done[e.id] = 1;
+  const stg = stageOf(rid);
+  if(!e.repeat && !r.again){ S.done[e.id] = 1; if(S.at[e.id] == null) S.at[e.id] = stg; }
   if(r.t === "__minjae__") r = minjaeResult();
   if(r.take && !Array.isArray(r.take)) r = Object.assign({}, r, { take:[r.take] });
   if(Array.isArray(r.t)) r = Object.assign({}, r, { t: r.t[Math.floor(Math.random() * r.t.length)] });   // 문구 여러 개 중 하나
@@ -394,6 +400,7 @@ function choose(e, c, art, cont, rid0){
   const amb = ambient(e, r);
   pruneClues().forEach(nm => amb.push([`다 쓴 단서를 정리했다 · ${nm}`, false]));
   Object.assign(S.flags, r.set||{});
+  Object.keys(r.set || {}).forEach(k => { if(r.set[k] && S.at[k] == null) S.at[k] = stg; });   // 깃발이 처음 켜진 단계 기록 (req.later 용)
   if((r.unlock||[]).length){ const R = S.route, nx = R[R.indexOf(rid) + 1]; if(nx) S.unlocked[nx] = 1; }   // 지금 지역의 "다음 지역"이 열린다 (순서는 판마다 다름)
   if((r.unlock||[]).length) SND.play("ending"); else if(r.hp < 0) SND.play("hurt"); else if(r.san < 0) SND.play("mind");
   else if(r.hp > 0 || r.san > 0) SND.play("heal"); else if((r.give||[]).length) SND.play("item");
@@ -416,7 +423,7 @@ function ambient(e, r){
   if(!a || e.type === "story" || r.safe || r.ending || (r.unlock||[]).length) return out;
   [["hp","체력"],["san","정신력"]].forEach(([k,nm]) => {
     const x = a[k], cover = 1 - 0.2 * party().filter(c => !S.flags[c.hurt]).length;   // 멀쩡한 동행이 있으면 환경 피해가 줄어든다
-    const mul = (D.ambientStage || {})[stageOf(regionOf(e.place) || S.region)] || 1;      // 뒤에 간 지역일수록 거칠다
+    const mulv = (D.ambientStage || {})[stageOf(regionOf(e.place) || S.region)], mul = mulv == null ? 1 : mulv;      // 뒤에 간 지역일수록 거칠다
     if(!x || Math.random() >= x.p * cover * mul) return;
     S[k] = clamp(S[k] - x.n); out.push([`${x.why} ${nm} -${x.n}`, false]);
   });
@@ -452,7 +459,7 @@ function end(id){
   m.n++; try{ localStorage.setItem("wasteland-endings-meta", JSON.stringify(meta)); }catch(_){}
   endScreen(id, isNew, seen.length);
 }
-function restart(){ const el = $("#ending"); if(el) el.remove(); S = fresh(); save(); close(); showTitle(); }
+function restart(){ const el = $("#ending"); if(el) el.remove(); S = fresh(); applyRoute(); save(); close(); showTitle(); }
 
 // ---------- 엔딩 연출: 전용 화면(이미지 + 본문 + 후일담 + 기록) ----------
 const pad2 = n => String(n).padStart(2, "0");
@@ -648,9 +655,9 @@ function enter(){ bunkerBg(); $("#title").classList.add("hide"); render(); if(!S
 $("#t-start").onclick = () => {
   const sv = load();
   if(sv && sv.started && !sv.over && !confirm("저장된 진행 상황이 지워집니다. 새로 시작할까요?")) return;
-  S = fresh(); S.started = true; save(); enter();
+  S = fresh(); S.started = true; applyRoute(); save(); enter();
 };
-$("#t-continue").onclick = () => { S = norm(load()) || fresh(); enter(); };
+$("#t-continue").onclick = () => { S = norm(load()) || fresh(); applyRoute(); enter(); };
 $("#btn-title").onclick = () => { save(); showTitle(); };
 
 document.addEventListener("keydown", e => {
