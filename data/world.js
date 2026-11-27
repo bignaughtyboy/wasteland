@@ -112,7 +112,7 @@ window.GAME_DATA = {
     flashlight:{ name: "손전등",      desc: "어두운 곳을 조사할 수 있다." },
     key:       { name: "약품실 열쇠", desc: "어딘가의 잠긴 문을 연다." },
     crowbar:   { name: "쇠지렛대",    desc: "문을 억지로 연다." },
-    cloth:     { name: "천 조각",     desc: "비교적 깨끗하다." },
+    cloth:     { name: "천 조각",     desc: "비교적 깨끗하다. 세 장을 엮으면 붕대가 된다.", craft: { need: 3, to: "bandage", label: "붕대로 엮는다 (3개)" } },
     scrap:     { name: "금속 부품",   desc: "쓸모가 있을지도 모른다." },
     can:       { name: "통조림",      desc: "먹으면 힘이 난다. 교환에도 쓸 수 있다. 체력 +1", use: { hp: 1 } },
     photo:     { name: "낡은 사진",   desc: "누군가의 가족사진. 정신력 +1", use: { san: 1 } },
@@ -153,9 +153,9 @@ window.GAME_DATA = {
   pityStep: 0.1, pityMax: 0.35,
   // 후반 지역의 환경 피해: 탐험 이벤트가 끝날 때마다 확률(p)로 n 만큼 깎인다. (구도심·산업지대는 없음)
   ambient: {
-    lake: { san: { p: 0.2, n: 1, why: "안개와 물소리" } },
-    city: { san: { p: 0.3, n: 1, why: "감시당하는 기분" }, hp: { p: 0.15, n: 1, why: "굶주림" } },
-    mtn:  { hp: { p: 0.4, n: 1, why: "혹한" }, san: { p: 0.25, n: 1, why: "고립감" } }
+    lake: { san: { p: 0.15, n: 1, why: "안개와 물소리" } },
+    city: { san: { p: 0.2, n: 1, why: "감시당하는 기분" }, hp: { p: 0.1, n: 1, why: "굶주림" } },
+    mtn:  { hp: { p: 0.25, n: 1, why: "혹한" }, san: { p: 0.15, n: 1, why: "고립감" } }
   },
   fillers: [
     "구석구석 뒤져 보았지만 쓸 만한 것은 없었다. 먼지만 일어난다.",
@@ -283,10 +283,9 @@ Object.entries({
     launch:      { place:["mtn","top"], tone:"hope", epilogue:"발사 소리는 산 전체를 울렸고, 눈사태가 능선 아래로 한 번 흘렀다. 그 뒤로는 오래도록 정적이었다.\n\n신호가 어디에 닿았는지는 알 수 없다. 하지만 이제 이 세계는 혼자 말하고 있지 않다. 당신은 따뜻한 컵을 들고 별이 뜨기를 기다린다." },
     dismantle:   { place:["mtn","top"], tone:"quiet", epilogue:"볼트를 풀 때마다 금속이 눈 위에서 낮게 울렸다. 쉬운 일은 아니었다. 쉽게 되돌릴 수 없는 일이어서였다.\n\n산을 내려가는 길에 당신은 한 번도 뒤돌아보지 않았다. 하늘은 조용했고, 그 조용함이 틀리지 않기를 바랐다." }
   };
-  for(const id in E){ const x = X[id] || {}; Object.assign(E[id], { place:x.place || ["old","building"], tone:x.tone || "quiet", epilogue:x.epilogue || "" }); }
+  const DEAD = ["lake_drown", "freeze", "fall"];   // death 로 시작하지 않는 사망 엔딩
+  for(const id in E){ const x = X[id] || {}; Object.assign(E[id], { place:x.place || ["old","building"], tone:x.tone || "quiet", epilogue:x.epilogue || "", dead: /^death/.test(id) || DEAD.includes(id) }); }
 })();
 
-// ===== 리더보드 (선택) =====
-// url 에 Firebase Realtime Database 주소(예: "https://내프로젝트-default-rtdb.firebaseio.com")를 넣으면 모두가 보는 리더보드가 켜집니다.
-// 비워 두면 이 기기에만 기록이 남습니다. 설정 방법은 README.md 를 보세요.
-window.GAME_DATA.leaderboard = { url: "", limit: 60 };
+// 전용 엔딩 이미지를 올린 엔딩 id 목록. assets/endings/<id>.jpg 를 올린 뒤 여기에 id 를 추가하세요. (예: ["launch", "death_mtn"])
+window.GAME_DATA.endingImages = [];
