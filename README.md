@@ -37,18 +37,6 @@ HTML / CSS / JavaScript (프레임워크·빌드 도구 없음)
 
 ## 엔딩 화면 이미지
 
-엔딩마다 전용 이미지를 넣으려면 `assets/endings/엔딩id.jpg` 파일을 올리면 됩니다 (권장 1600×900, 16:9). 파일이 없으면 지도 확대 그림이 임시로 쓰입니다.
+엔딩마다 전용 이미지를 넣으려면 `assets/endings/엔딩id.jpg` 파일을 올리면 됩니다 (권장 1600×900, 16:9). 그리고 그 id를 `data/world.js`의 `window.GAME_DATA.endingImages = ["launch", ...]` 배열에 추가해야 표시됩니다 (없는 파일을 요청해 404가 나는 것을 막기 위함). 목록에 없으면 지도 확대 그림이 임시로 쓰입니다.
 엔딩 id 목록은 `data/world.js`의 `endings`에 있습니다. (예: `launch.jpg`, `death_mtn.jpg`)
 
-## 리더보드 켜기 (선택)
-
-정적 사이트에는 서버가 없어서, 모두가 보는 리더보드에는 무료 Firebase Realtime Database가 필요합니다.
-
-1. https://console.firebase.google.com 에서 프로젝트를 만들고 **Realtime Database**를 생성합니다.
-2. **규칙** 탭에 아래를 붙여 넣고 게시합니다. (읽기는 공개, 쓰기는 새 기록 추가만 허용)
-```
-{"rules":{"scores":{".read":true,"$id":{".write":"!data.exists()",".validate":"newData.hasChildren(['n','e','d','t']) && newData.child('n').isString() && newData.child('n').val().length<=12 && newData.child('e').isString() && newData.child('e').val().length<=24 && newData.child('d').isNumber() && newData.child('d').val()>=1 && newData.child('d').val()<=999 && newData.child('t').isNumber()"}}}}
-```
-3. 데이터 탭 상단의 주소(`https://….firebaseio.com`)를 `data/world.js` 맨 아래 `leaderboard.url` 에 넣습니다.
-
-비워 두면 기록은 이 브라우저에만 저장됩니다.

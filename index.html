@@ -21,7 +21,6 @@
 
 <!-- 타이틀 화면 -->
 <section id="title">
-  <aside id="board" class="bd" aria-label="리더보드"></aside>
   <div class="title-box">
     <h1>WASTELAND</h1>
     <p class="sub">문명이 무너진 세계의 탐험 기록</p>
@@ -29,7 +28,6 @@
       <button id="t-continue" hidden>이어하기</button>
       <button id="t-start">새 게임</button>
       <button id="t-endings">엔딩 기록</button>
-      <button id="t-board">리더보드</button>
       <button id="t-settings">설정</button>
     </div>
   </div>
@@ -53,6 +51,7 @@
     <section id="bunker" aria-label="벙커">
       <div id="bunker-img"></div>
       <div id="bunker-title" class="plate">벙커</div>
+      <div id="bk-goal" class="goal" aria-live="polite"></div>
       <div class="bk-menu">
         <button id="bk-go" class="primary"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.500 8.500l-2 5-5 2 2-5z"/></svg><span>탐 험</span><small>폐허의 지도를 펼친다</small><em aria-hidden="true">→</em></button>
         <button id="bk-sleep"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.500A8 8 0 0 1 9.500 4a8 8 0 1 0 10.500 10.500z"/></svg><span>잠들기</span></button>
