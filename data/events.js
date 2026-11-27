@@ -82,7 +82,7 @@ R("rb_floor", "building", "무너진 층 정찰",
  ], { weight:4 }),
 
 R("rb_roof", "building", "옥상에서 망보기",
- "옥상 난간에 기대어 구도심을 내려다본다. 연기, 부서진 간판, 길 위의 무언가. 오늘은 어떤 것이 보일까.",
+ "옥상 난간에 기대어 폐허를 내려다본다. 연기, 부서진 간판, 길 위의 무언가. 오늘은 어떤 것이 보일까.",
  [
   c("한참 지켜본다.", roll(
     [3, { t:"먼 곳에서 새 떼가 날아오른다. 오랜만에 살아 있는 것을 보았다. 마음이 가라앉는다.", san:1 }],
@@ -159,9 +159,9 @@ R("rho_morgue", "hospital", "영안실 앞",
  ], { weight:2 }),
 
 S("s3_control", "subway", "관제실의 철문",
- "손전등 불빛이 승강장 끝을 훑는다. 약도가 가리킨 곳, 선로 맞은편의 철문이 어둠 속에서 모습을 드러낸다.\n\n문에는 ‘관제실’이라는 글자가 반쯤 지워진 채 남아 있다. 자물쇠는 오래전에 부서져 있다. 누군가 먼저 다녀갔다.\n\n문을 열자 먼지 쌓인 장부와 꺼진 모니터가 줄지어 있고, 그 너머로 바람이 새어 나오는 터널이 보인다.\n\n바람에는 희미하게 기름과 연기 냄새가 섞여 있다. 라디오가 말한 ‘남쪽 출구’가 이 방향일지도 모른다. 구도심 너머로 가는 길이다.",
+ "손전등 불빛이 승강장 끝을 훑는다. 약도가 가리킨 곳, 선로 맞은편의 철문이 어둠 속에서 모습을 드러낸다.\n\n문에는 ‘관제실’이라는 글자가 반쯤 지워진 채 남아 있다. 자물쇠는 오래전에 부서져 있다. 누군가 먼저 다녀갔다.\n\n문을 열자 먼지 쌓인 장부와 꺼진 모니터가 줄지어 있고, 그 너머로 바람이 새어 나오는 터널이 보인다.\n\n바람에는 희미하게 기름과 연기 냄새가 섞여 있다. 라디오가 말한 ‘남쪽 출구’가 이 방향일지도 모른다. 이 지대 너머로 가는 길이다.",
  [
-  c("터널을 따라 걸어간다.", { t:"손전등으로 발밑을 비추며 터널로 들어선다. 얼마나 걸었는지 알 수 없을 때쯤 어둠 끝에서 희미한 빛이 보인다.\n\n빛 너머로 {dir}, {land:의} 윤곽이 드러난다. 마지막 신호의 방향이 맞았다.\n\n구도심 너머로 가는 길이 열렸다.", unlock:["ind"], set:{ tunnel_open:1 } }),
+  c("터널을 따라 걸어간다.", { t:"손전등으로 발밑을 비추며 터널로 들어선다. 얼마나 걸었는지 알 수 없을 때쯤 어둠 끝에서 희미한 빛이 보인다.\n\n빛 너머로 {dir}, {land:의} 윤곽이 드러난다. 마지막 신호의 방향이 맞았다.\n\n이 지대 너머로 가는 길이 열렸다.", unlock:["ind"], set:{ tunnel_open:1 } }),
   c("관제실 장부를 연구 기록과 대조한다.", { t:"가방에서 연구 기록을 꺼내 장부 옆에 펼친다. 숫자가 하나씩 맞물린다.\n\n재난 이전부터 이 도시의 지하 환기망은 {dir}의 {land:과} 연결되어 있었다. 장부 마지막 장에는 한 줄이 적혀 있다. ‘남쪽 출구는 {dir}의 {land:으로} 통한다.’\n\n누군가는 알고 있었다. 이제 당신도 안다. 서늘한 기분을 누르며 터널로 향한다.", san:-1, unlock:["ind"], set:{ tunnel_open:1, knows_truth:1 } }, { items:["note"] }),
   c("승강장의 민재와 함께 터널로 들어선다.", { t:"벤치에 앉아 있던 민재에게 손짓하자, 그는 놀란 얼굴로 다가온다. 철문 앞에서 한 번 멈춰 서더니 고개를 끄덕인다.\n\n“혼자 가는 것보다는 낫겠죠.”\n\n둘은 말없이 어둠 속을 걷는다. 발소리가 두 사람의 것이라는 사실만으로 마음이 놓인다. 터널 끝에서 {land:이} 모습을 드러낸다.", san:1, unlock:["ind"], set:{ tunnel_open:1, minjae_companion:1 } }, { flags:["minjae_met"], notFlags:["minjae_cold"] })
  ], { chance:0.4, req:{ done:["s2_records"], items:["flashlight"] }, low:"손전등 불빛이 흔들린다. 손이 떨리는 것인지, 어둠이 떨리는 것인지 알 수 없다.\n\n철문은 당신을 기다렸다는 듯 반쯤 열려 있다. 안쪽에서 낮은 숨소리 같은 바람이 흘러나온다.\n\n관제실의 모니터들이 하나씩 희미하게 켜지는 것 같다. 아니, 그럴 리 없다. 전기는 끊긴 지 오래다." }),
@@ -924,7 +924,7 @@ O("top_core", "top", "중앙 제어실",
   c("기록을 모두 지운다.", { t:"‘영구 폐쇄’ 스위치를 올리자 모니터가 하나씩 검게 변한다. 명단, 지도, 일지, 방송 기록. 모든 것이 사라진다.\n\n무엇이 진실이었는지 이제 아무도 알 수 없을 것이다. 그것이 구원인지 도피인지 당신도 알 수 없다.", ending:"erase" }, { flags:["knows_truth"] }),
   c("연료를 쏟아 제어실을 불태운다.", { t:"연료통의 뚜껑을 열고 콘솔과 케이블 위로 쏟아붓는다. 성냥 하나로 모든 것이 붉게 번진다.\n\n불꽃이 모니터를 하나씩 삼킨다. 당신은 문 앞에서 오래도록 그 장면을 바라본다.", take:["fuel"], ending:"burn" }, { items:["fuel"] }),
   c("통제권을 인수한다.", { t:"윤 대위의 완장을 콘솔 위에 올려 둔다. 모니터가 당신의 이름을 인식한다. 모든 구역, 모든 벙커, 모든 사람의 정보가 당신 앞에 펼쳐진다.\n\n질서란 누군가가 지켜야만 존재한다. 이제 그 누군가는 당신이다.", ending:"rule" }, { flags:["order_member"] }),
-  c("아무것도 건드리지 않고 벙커로 돌아간다.", { t:"콘솔 앞에서 한참을 서 있다가 몸을 돌린다. 아직 결정할 준비가 되지 않았다. 아니, 결정하지 않겠다고 결정한다.\n\n산을 내려오는 동안 구도심의 낡은 벙커가 자꾸 떠오른다. 그곳이 이제는 집처럼 느껴진다.", ending:"return_bunker" }),
+  c("아무것도 건드리지 않고 벙커로 돌아간다.", { t:"콘솔 앞에서 한참을 서 있다가 몸을 돌린다. 아직 결정할 준비가 되지 않았다. 아니, 결정하지 않겠다고 결정한다.\n\n산을 내려오는 동안 당신의 낡은 벙커가 자꾸 떠오른다. 그곳이 이제는 집처럼 느껴진다.", ending:"return_bunker" }),
   c("조금 더 둘러보고 결정한다.", { t:"결정을 미루고 제어실을 나선다. 아직 확인하지 못한 것이 남아 있을지도 모른다.", again:1 })
  ], { weight:7, req:{ flags:["top_open"] }, low:"복도를 지나자 둥근 홀이 나온다. 모니터마다 사람 얼굴이 떠 있다. 모두 당신을 바라보고 있다.\n\n콘솔 위의 스위치가 하나씩 켜졌다 꺼졌다 한다. 누군가 이곳에서 당신을 기다리고 있다." }),
 
@@ -1003,7 +1003,7 @@ R("rm_climb", "ridge", "능선 오르기",
  ], { weight:3 }),
 
 R("rm_view", "ridge", "능선에서 내려다보기",
- "바위 위에 올라서면 구도심과 호수, 신도시가 한눈에 보인다. 지나온 길이 아득하다.",
+ "바위 위에 올라서면 지나온 땅들이 한눈에 보인다. 지나온 길이 아득하다.",
  [
   c("한참 바라본다.", roll(
     [3, { t:"지나온 길이 지도처럼 펼쳐진다. 이상하게 위로가 된다.", san:2 }],
@@ -1292,40 +1292,40 @@ const HS2 = [
 window.GAME_DATA.events.push(
 
 // ---- 민재: 구도심 옥상에서 만난 생존자. 함께 터널을 지나왔다면 이 이야기가 이어진다 ----
-N("mj_1", [1,2,3], "민재의 발목",
+N("mj_1", "*", "민재의 발목",
  "길이 갑자기 무너져 내린 곳에서 민재가 비명을 질렀다. 돌 틈에 끼었던 발목이 겨우 빠져나왔다.\n\n그는 이를 악물고 웃어 보이려 한다. “괜찮아요. 조금만 쉬면…” 얼굴이 하얗다. 발목은 눈에 띄게 부어오르고 있다.\n\n해가 지기 전에 움직여야 한다.",
  [
   c("붕대를 감아 준다.", { t:"붕대를 꽉 감았다. 민재는 숨을 들이쉬더니 천천히 내쉰다.\n\n“고마워요. 이런 거, 해 주는 사람은 처음이에요.”\n\n그는 한결 가벼운 걸음으로 일어선다.", take:["bandage"], san:1, set:{ mj_trust:1 } }, { items:["bandage"] }),
   c("어깨를 내주고 부축한다.", { t:"민재의 팔을 어깨에 걸치고 걷는다. 한 걸음마다 그의 체중이 등을 짓누른다. 몇 시간이 걸렸는지 모르겠다.\n\n“미안해요, 미안해요…” 그는 계속 중얼거린다. 그래도 그 손은 놓지 않는다.", hp:-1, set:{ mj_trust:1, hurt_minjae:1 } }),
   c("“먼저 가 있겠다”고 말하고 돌아선다.", { t:"그는 아무 말도 하지 않았다. 다만 한 번 고개를 끄덕였다. 그 끄덕임이 오래 등에 달라붙는다.\n\n뒤돌아보니 이미 민재는 보이지 않았다.", san:-1, set:{ minjae_companion:0, lost_minjae:1, lost_any:1 } })
- ], { chance:0.55, req:{ flags:["minjae_companion"] } }),
+ ], { chance:0.55, req:{ flags:["minjae_companion"], later:["minjae_companion"] } }),
 
-N("mj_2", [2,3], "민재의 고백",
+N("mj_2", "*", "민재의 고백",
  "해가 진 뒤 불을 피웠다. 민재는 오래 불꽃만 바라보다가 입을 열었다.\n\n“옥상에서 처음 만났을 때, 제가 우연히 거기 있었다고 했잖아요. 사실은 아니에요.”\n\n그는 소매 안쪽에서 낡은 완장을 꺼냈다. 색이 바랜 파란색이다.\n\n“저, 질서 유지단 출신이에요. 도망쳤어요. 명령이 있었거든요. 관측소 근처에 가는 사람은 돌려보내라고. 안 돌아가면…”\n\n그는 말을 잇지 못했다.",
  [
   c("“말해 줘서 고마워.” 완장을 불에 던지게 둔다.", { t:"민재는 완장을 한참 쥐고 있다가 불꽃 속으로 던졌다. 파란 천이 천천히 검게 말려 든다.\n\n“이제 진짜 같이 가는 거네요.”\n\n그의 어깨가 처음으로 내려앉았다.", san:1, set:{ mj_trust2:1 } }),
   c("“거짓말을 했네.” 추궁한다.", { t:"“그게 아니라…” 민재는 말을 더듬다가 벌떡 일어섰다. 눈에는 겁이 가득하다.\n\n“그러니까 말하지 말걸 그랬어요!”\n\n그는 어둠 속으로 달려갔고, 불 앞에는 완장만 남았다.", san:-1, set:{ minjae_companion:0, lost_minjae:1, lost_any:1 } }),
   c("못 들은 척 불을 돌본다.", { t:"당신은 장작을 하나 더 넣는다. 민재는 오래 기다리다가 완장을 다시 소매 안에 밀어 넣는다.\n\n그날 밤 두 사람은 서로 등을 돌리고 누웠다. 아무도 잠들지 못했다.", set:{ mj_secret:1 } })
- ], { chance:0.55, req:{ flags:["minjae_companion"], done:["mj_1"] } }),
+ ], { chance:0.55, req:{ flags:["minjae_companion"], done:["mj_1"], later:["mj_1"] } }),
 
-N("mj_3", [3,4], "파란 완장",
+N("mj_3", "*", "파란 완장",
  "저 앞 길목에 파란 완장을 찬 사람들이 서 있다. 총구를 아래로 향한 채 오가는 이를 하나씩 세운다. 피해 갈 길은 없다.\n\n민재의 얼굴에서 핏기가 가셨다. 그가 낮게 말한다.\n\n“제가 아는 사람들이에요. 제가 가면…”",
  [
   c("민재가 앞으로 나서게 둔다.", { t:"민재는 한 번 크게 숨을 쉬고 완장 무리 쪽으로 걸어 나갔다. 손을 높이 들고 이름을 외친다. 시선이 전부 그에게 쏠린다.\n\n그 틈에 당신은 담벼락 그림자를 따라 길을 빠져나왔다. 뒤에서 그의 목소리가 한 번 더 들렸다. 돌아보지 않았다. 그가 그러라고 했다.\n\n주머니에는 어느새 낡은 열쇠 하나가 들어 있다.", san:-2, set:{ minjae_sacrificed:1, minjae_companion:0, lost_any:1 } }, { flags:["mj_trust2"] }),
   c("민재를 붙잡고 다른 길로 돌아 나간다.", { t:"민재의 손목을 잡아끌고 무너진 담 사이로 몸을 밀어 넣었다. 먼 길을 돌아야 했고 몇 번이나 발이 미끄러졌다.\n\n한참 뒤에야 둘은 숨을 고르며 주저앉았다. 민재가 웃음 같은 것을 터뜨렸다. “저, 아직 살아 있네요.”", hp:-1, set:{ mj_trust3:1 } }),
   c("민재를 앞세워 시선을 끈다.", { t:"민재의 등을 떠민다. 그가 돌아본 얼굴을 오래 잊지 못할 것이다.\n\n비명과 고함이 터지는 사이 길을 지나쳤다. 그의 가방에서 떨어진 통조림이 발치에 굴러 왔다. 줍는 손이 떨렸다.", san:-2, give:["can"], set:{ minjae_companion:0, lost_minjae:1, lost_any:1 } })
- ], { chance:0.6, req:{ flags:["minjae_companion","mj_trust2"], done:["mj_2"] } }),
+ ], { chance:0.6, req:{ flags:["minjae_companion","mj_trust2"], done:["mj_2"], later:["mj_2"] } }),
 
-N("mj_3b", [3,4], "민재의 배신",
+N("mj_3b", "*", "민재의 배신",
  "저 앞 길목에 파란 완장을 찬 사람들이 서 있다. 총구를 아래로 향한 채 오가는 이를 하나씩 세운다.\n\n그때 민재가 갑자기 앞으로 한 걸음 나선다. 얼굴이 하얗다. 손가락이 당신의 가방을 가리킨다.\n\n“저 사람이 가진 게 있어요. 관측소 쪽으로 가는 사람이에요!”\n\n그의 눈에는 미안함과 두려움이 뒤섞여 있다.",
  [
   c("가방을 움켜쥐고 달아난다.", { t:"몸을 돌려 무너진 담을 뛰어넘는다. 총성이 한 번 울리고 팔을 스친다. 한참을 달려서야 숨이 터졌다.\n\n민재의 목소리가 멀리서 들린다. 사과인지 변명인지 알 수 없었다.", hp:-2, set:{ minjae_companion:0, minjae_betrayed:1, lost_any:1 } }),
   c("민재의 팔을 붙잡고 “같이 도망치자”고 한다.", { t:"그의 팔을 붙잡고 끌었다. 민재는 저항하다가, 어느 순간 힘이 풀렸다.\n\n둘은 엎드린 채 폐허 속으로 굴러들었다. 한참 뒤 민재가 울음 섞인 목소리로 말했다. “왜요… 왜 안 버리고…”", hp:-1, san:-1, set:{ mj_trust3:1 } }),
   c("가방의 물건을 던져 주고 물러선다.", { t:"가방에서 잡히는 대로 던져 주었다. 완장들이 그쪽으로 몰려드는 사이 뒷걸음쳤다. 민재는 고개를 숙인 채 따라오지 못했다.", take:["can"], san:-1, set:{ minjae_companion:0, minjae_betrayed:1, lost_any:1 } }, { items:["can"] })
- ], { chance:0.6, req:{ flags:["minjae_companion","mj_secret"], notFlags:["mj_trust2"], done:["mj_2"] } }),
+ ], { chance:0.6, req:{ flags:["minjae_companion","mj_secret"], notFlags:["mj_trust2"], done:["mj_2"], later:["mj_2"] } }),
 
 // ---- 해솔: 짐자전거를 끄는 배달부. 소식에 밝고, 아무도 모르는 상자를 들고 다닌다 ----
-N("hs_1", [1,2], "고장 난 짐자전거",
+N("hs_1", [1,2,3], "고장 난 짐자전거",
  "길가에 부서진 짐자전거가 쓰러져 있다. 그 옆에 낡은 우편 가방을 멘 여자가 앉아 체인을 만지작거린다.\n\n“움직이지 마요, 지금 모터 소리가 아니라… 아, 사람이네.” 그녀가 고개를 든다. 볕에 그을린 얼굴, 손가락마다 기름때가 묻어 있다.\n\n“난 해솔. 배달부예요. 이 바닥 소식은 누구보다 빠르죠. 길을 알려 줄 수도 있고요. 공짜는 아니지만.”",
  [
   c("통조림을 건네고 길을 묻는다.", { t:"통조림을 받아 든 해솔이 웃는다. “거래 성립.” 그녀는 손바닥만 한 종이에 길을 그려 준다.\n\n“{dir:으로} 가는 게 제일 빠를 거예요. 거기까지만 알아도 반은 온 거죠. 곧 또 봐요.”", take:["can"], san:1, set:{ hs_met:1, hs_trade:1 } }, { items:["can"] }),
@@ -1333,33 +1333,33 @@ N("hs_1", [1,2], "고장 난 짐자전거",
   c("그냥 지나친다.", { t:"해솔은 고개를 저으며 체인을 다시 만진다. “아쉽네. 소식이 늦으면 다치는 사람이 생기는데.”\n\n등 뒤에서 그 말이 오래 따라온다.", set:{ hs_snub:1 } })
  ], { chance:0.55 }),
 
-N("hs_again", [2,3], "다시 만난 배달부",
+N("hs_again", "*", "다시 만난 배달부",
  "앞쪽에서 고함이 들린다. 사내 둘이 부서진 짐자전거를 밀치고 우편 가방을 빼앗으려 하고 있다. 가방 끈을 붙잡고 버티는 사람은 낯이 익다. 해솔이다.\n\n눈이 마주쳤다. 그녀는 도와 달라고도, 가라고도 하지 않는다. 그저 이를 악물고 있다.",
  [
   c("뛰어들어 사내들을 떼어 놓는다.", { t:"어깨로 한 사람을 들이받고 다른 사람의 팔을 비틀었다. 둘은 욕설을 뱉으며 물러났다.\n\n해솔은 가방을 끌어안고 숨을 몰아쉬었다. “…지난번엔 내가 심했죠.”\n\n그녀는 자전거를 풀숲에 눕히고 당신 곁으로 걸어온다.", hp:-1, san:1, set:{ hs_met:1, hs_trust:1, with_haesol:1 } }),
   c("소리를 질러 사내들의 주의를 끈다.", { t:"큰 소리를 내자 사내들이 흠칫 돌아보았다. 그 틈에 해솔이 가방을 낚아채 달아났다.\n\n그녀는 멀리서 한 번 손을 흔들었다. 다시 만날 수 있을지는 모르겠다.", san:1, set:{ hs_met:1, hs_trade:1 } }),
   c("모른 척 지나간다.", { t:"고함은 곧 비명이 되었다가 조용해졌다. 그 뒤로 당신은 오래 뒤를 돌아보지 않았다.", san:-1, set:{ lost_any:1 } })
- ], { chance:0.5, req:{ flags:["hs_snub"] } }),
+ ], { chance:0.5, req:{ flags:["hs_snub"], later:["hs_snub"] } }),
 
-N("hs_2a", [2,3], "봉인된 상자",
+N("hs_2a", "*", "봉인된 상자",
  "해솔이 걸음을 멈춘다. 가방에서 손바닥 두 개만 한 금속 상자를 꺼내 바닥에 내려놓는다. 잠금장치에는 관측소의 마크가 새겨져 있다.\n\n“이거, 산 위로 가져가야 하는 물건이에요. 누가 맡겼는지는 말 못 하고요. 근데 잠깐 정찰하고 와야 해서…”\n\n그녀는 당신의 얼굴을 본다. 오래 본다.",
- HS2, { chance:0.55, req:{ flags:["with_haesol"], done:["hs_1"] } }),
+ HS2, { chance:0.55, req:{ flags:["with_haesol"], done:["hs_1"], later:["hs_1"] } }),
 
-N("hs_2b", [2,3], "봉인된 상자",
+N("hs_2b", "*", "봉인된 상자",
  "“또 만났네요.” 짐자전거를 끌고 오던 해솔이 손을 든다. 가방에서 손바닥 두 개만 한 금속 상자를 꺼낸다. 잠금장치에는 관측소의 마크가 새겨져 있다.\n\n“이거, 산 위로 가져가야 하는 물건이에요. 누가 맡겼는지는 말 못 하고요. 근데 잠깐 정찰하고 와야 해서, 그동안…”\n\n그녀는 당신의 얼굴을 본다. 오래 본다.",
- HS2, { chance:0.5, req:{ flags:["hs_trade"], notFlags:["with_haesol"], done:["hs_1"] } }),
+ HS2, { chance:0.5, req:{ flags:["hs_trade"], notFlags:["with_haesol"], done:["hs_1"], later:["hs_1"] } }),
 
-N("hs_3", [3,4], "총성",
+N("hs_3", "*", "총성",
  "고요를 가르는 건조한 소리가 한 번. 해솔이 짧게 숨을 들이쉬며 주저앉는다. 어깨에서 붉은 것이 번진다.\n\n“움직이지 마요… 저쪽에서… 쏜 거예요…” 멀리 파란 완장이 언뜻 보인다. 순찰자들이다.\n\n그녀의 손은 그 와중에도 상자를 꼭 쥐고 있다.",
  [
   c("붕대로 지혈한다.", { t:"붕대를 꽉 동여매고 그녀를 폐허 뒤로 끌고 들어간다. 순찰자들의 발소리가 멀어질 때까지 둘은 숨을 죽였다.\n\n해솔은 창백한 얼굴로 웃었다. “이거 갚으려면… 오래 걸리겠네요.”", take:["bandage"], san:1, set:{ hs_saved:1, hurt_haesol:1 } }, { items:["bandage"] }),
   c("치료제를 먹인다.", { t:"치료제를 입에 넣어 주자 해솔의 숨이 천천히 고르게 돌아왔다. 어깨의 피도 멎어 간다.\n\n“…이런 귀한 걸.” 그녀는 눈을 감은 채 중얼거렸다. “기억해 둘게요.”", take:["medicine"], san:1, set:{ hs_saved:1 } }, { items:["medicine"] }),
   c("업고 달린다.", { t:"해솔을 등에 업고 무작정 달렸다. 숨이 목까지 차오르고 다리가 후들거린다. 총성은 두 번 더 울렸지만 맞지 않았다.\n\n안전한 곳에 내려놓자 그녀가 낮게 웃었다. “무겁죠. 상자 때문에.”", hp:-2, set:{ hs_saved:1, hurt_haesol:1 } }),
   c("두고 간다.", { t:"해솔의 눈이 당신을 따라온다. 아무 말도 하지 않는다. 그게 더 크게 들린다.\n\n뒤에서 총성이 한 번 더 울렸다. 한참을 걷고 나서야 손이 떨리는 것을 알았다.", san:-2, set:{ with_haesol:0, hs_dead:1, lost_haesol:1, lost_any:1 } })
- ], { chance:0.6, req:{ flags:["with_haesol","hs_trust"] } }),
+ ], { chance:0.6, req:{ flags:["with_haesol","hs_trust"], later:["hs_trust"] } }),
 
 // ---- 박 노인: 관측소의 마지막 정비공. 제어실 암호를 알고 있다 ----
-N("pk_1", [2,3], "처마 밑의 노인",
+N("pk_1", [1,2,3], "처마 밑의 노인",
  "무너진 처마 밑에서 노인이 두 손으로 마른기침을 틀어막고 있다. 낡은 점퍼 가슴에는 빛바랜 이름표가 달려 있다. ‘박 — M-7 정비’.\n\n“관측소 사람은… 이제 나 하나 남았을 거요.” 노인은 숨을 몰아쉰다. “물이나… 있으면…”",
  [
   c("물병을 건넨다.", { t:"노인은 물을 아주 천천히 마셨다. 기침이 한결 잦아든다.\n\n“고맙소. 값은 못 치르지만 이건 알려 주지. 중앙 제어실 문은 암호가 있소. 마지막 자리를 틀리면 영영 잠겨 버리니, 잘 들으시오.”\n\n노인은 낮은 목소리로 숫자를 읊었다. 당신은 그것을 수첩에 받아 적는다.", take:["water"], san:1, set:{ pk_code:1, core_code:1 } }, { items:["water"] }),
@@ -1367,6 +1367,60 @@ N("pk_1", [2,3], "처마 밑의 노인",
   c("돕지 않고 지나간다.", { t:"등 뒤의 기침 소리는 몇 걸음 만에 들리지 않게 되었다. 되돌아볼 용기는 나지 않았다.", san:-1, set:{ pk_dead:1, lost_any:1 } })
  ], { chance:0.45 })
 
+);
+
+// ---- 민재의 첫 만남: 같은 인물, 시작 지역마다 다른 장소에서 만난다 (구도심은 기존 '옥상의 생존자') ----
+const MJ_MEET = (id, start, title, text, askLine) => N(id, 0, title, text, [
+  c("통조림을 건네준다.", { t:"통조림을 건네자 민재의 눈이 커진다. 그는 허겁지겁 뚜껑을 따며 연신 고개를 숙인다.\n\n“이 은혜 잊지 않겠습니다. 정말로요.”\n\n그의 눈에 오랜만에 사람다운 빛이 돌아왔다.", take:["can"], san:1, set:{ minjae_met:1, minjae_helped:1 } }, { items:["can"] }),
+  c("물건을 교환하자고 제안한다.", { t:"민재는 경계하는 눈빛으로 당신의 가방을 훑어본다. 한참 망설인 끝에 낡은 천 조각 하나를 내민다.\n\n“이게 제가 줄 수 있는 전부입니다.” 거래는 조용히 끝났다.", give:["cloth"], set:{ minjae_met:1 } }),
+  c("정체를 먼저 묻는다.", { t:"“어디서 왔습니까? 혼자입니까?”\n\n민재의 표정이 굳는다. 그는 오래 생각하다가 " + askLine + " 그 이상은 입을 열지 않는다.", set:{ minjae_met:1 } }),
+  c("아무 말 없이 자리를 떠난다.", { t:"돌아서서 걸음을 옮긴다.\n\n등 뒤에서 민재가 낮게 욕하는 소리가 들렸다. 시선이 한참 동안 뒤통수에 꽂혀 있는 것 같다.", san:-1, set:{ minjae_met:1, minjae_cold:1 } })
+], { chance:0.6, req:{ flags:["start_" + start], notFlags:["minjae_met"] } });
+
+window.GAME_DATA.events.push(
+MJ_MEET("mj_meet_ind", "ind", "컨테이너 틈의 생존자",
+ "하역장 쪽에서 가느다란 연기가 오른다. 컨테이너 사이의 좁은 틈, 불을 쬐던 사람이 당신을 발견하고 몸을 움츠린다.\n\n“다, 다가오지 마세요. 저, 아무것도 없어요.”\n\n낡은 작업복 소매 밖으로 손가락이 떨린다. 이름은 민재라고 했다. 며칠째 굶은 얼굴이다.",
+ "‘공장 지하에서 살아 돌아온 사람’이라고만 답한다."),
+MJ_MEET("mj_meet_lake", "lake", "부서진 판자 위의 생존자",
+ "물가를 따라 걷다가 부서진 선착장 판자 위에 웅크린 그림자를 본다. 신발이 한 짝뿐인 청년이 젖은 외투를 두르고 불 꺼진 깡통을 만지작거린다.\n\n“안개 때문에… 길을 잃었어요.” 그는 힘없이 웃는다. 이름은 민재라고 했다.\n\n이틀은 굶은 얼굴이다.",
+ "‘물에서 살아 나온 사람’이라고만 답한다."),
+MJ_MEET("mj_meet_city", "city", "버스 정류장의 생존자",
+ "텅 빈 도로 한가운데, 지붕이 반쯤 내려앉은 버스 정류장 아래서 누군가 쭈그려 앉아 있다. 유리 조각 위에 깔린 담요, 식어 버린 깡통.\n\n“저, 저는 아무것도 안 했어요.” 청년은 두 손을 들어 보인다. 이름은 민재라고 했다.\n\n눈 밑이 검다. 며칠째 못 잔 얼굴이다.",
+ "‘이 도시에서 도망쳐 나온 사람’이라고만 답한다."),
+
+// 다시 마주친 민재: 옥상·승강장 말고도 길 위에서 재회할 수 있다 (구도심 지하철역의 재회와 같은 결과)
+N("mj_return", [1,2], "길 위의 낯익은 그림자",
+ "무너진 담 그늘에서 누군가 손을 흔든다. 처음엔 환각인 줄 알았다. 며칠 전 마주쳤던 청년, 민재다.\n\n그는 먼저 당신을 알아보고 조심스레 다가온다. 어깨에 멘 가방은 한결 가벼워 보인다.",
+ [ c("다가가 말을 건다.", { t:"__minjae__" }) ],
+ { chance:0.5, req:{ flags:["minjae_met"], notFlags:["minjae_returned","minjae_cold"], later:["minjae_met"] } }),
+
+N("mj_offer", [1,2,3], "“같이 가도 될까요”",
+ "민재가 한참을 머뭇거리다가 입을 연다.\n\n“혼자 있으면 자꾸 이상한 생각이 들어요. 길을 모르는 건 아니에요. 그냥… 말할 사람이 있었으면 해서.”\n\n그는 눈을 맞추지 못한다. 대답을 기다리는 어깨가 조금 떨린다.",
+ [
+  c("“좋아. 같이 가자.”", { t:"민재의 얼굴이 처음으로 환해졌다. 그는 가방 끈을 고쳐 메고 당신의 한 걸음 뒤에서 걷기 시작한다.\n\n말없이 걷는 길인데도, 발소리가 둘이라는 사실이 든든하다.", san:1, set:{ minjae_companion:1 } }),
+  c("“아직은 혼자가 낫겠어.”", { t:"민재는 고개를 끄덕이며 억지로 웃는다. “그렇죠. 그게 맞아요.”\n\n멀어지는 그의 등을 한동안 보게 된다.", san:-1, set:{ mj_declined:1 } })
+ ], { chance:0.5, req:{ flags:["minjae_returned"], notFlags:["minjae_companion","minjae_cold","mj_declined","lost_minjae"] } })
+);
+
+// ---- 시작 지역별 첫 신호: 구도심은 라디오(s1_radio), 나머지는 각자의 방식으로 '방주'와 '관측소'를 처음 듣는다 ----
+const HOOK = (id, start, title, text, listen, skip) => N(id, 0, title, text, [
+  c("귀를 기울여 끝까지 듣는다.", { t:listen, san:-1, set:{ signal:1 } }),
+  c("들리지 않는 척 자리를 뜬다.", { t:skip, set:{ signal:1 } })
+], { chance:0.5, req:{ flags:["start_" + start] } });
+
+window.GAME_DATA.events.push(
+HOOK("hook_ind", "ind", "공장 스피커의 잡음",
+ "녹슨 철탑 꼭대기의 스피커가 숨을 몰아쉬듯 지직거린다. 한참 만에 사람의 목소리 비슷한 것이 흘러나온다.\n\n“…방주…문은 산 위에서…관측소…열쇠는 둘…”\n\n말은 곧 잡음에 묻혔다.",
+ "소리는 일정한 간격으로 같은 말을 되풀이한다. ‘방주’, ‘산 위의 관측소’. 누군가 일부러 틀어 둔 것이다. 누가, 왜.\n\n기계 소리가 멎은 뒤에도 귀에 남았다.",
+ "스피커를 등지고 걷는다. 그래도 단어 몇 개는 이미 머릿속에 박혔다. 방주. 산. 관측소."),
+HOOK("hook_lake", "lake", "물 위로 번지는 목소리",
+ "안개 속에서 낮은 목소리가 물결을 타고 번진다. 어디서 나는지 알 수 없다. 부서진 스피커 하나가 물가의 말뚝에 매달려 있다.\n\n“…방주…남은 사람들은 산으로…관측소가 문을 연다…”\n\n목소리는 파도에 섞여 흩어졌다.",
+ "목소리는 안개가 걷힐 때까지 같은 말을 속삭인다. ‘방주’, ‘산 위의 관측소’. 물이 말하는 것만 같아 소름이 돋는다.",
+ "스피커를 외면하고 걷는다. 하지만 물결 소리 사이로 ‘산’이라는 한 글자가 오래 따라온다."),
+HOOK("hook_city", "city", "빈 거리의 안내 방송",
+ "무너진 전광판 아래에서 안내 방송이 흘러나온다. 건조한 여자의 목소리.\n\n“…시민 여러분…방주 거주 구역으로…산 위의 관측소가 통제합니다…”\n\n방송은 몇 번이나 같은 구절을 반복한다.",
+ "방송은 끝없이 같은 말을 되풀이한다. 도시의 누구도 이 말을 듣지 않았을 것이다. ‘방주’, ‘산 위의 관측소’. 당신만이 듣고 있다.",
+ "방송을 뒤로하고 걷는다. 하지만 ‘산 위의 관측소’라는 말은 발걸음마다 따라붙는다.")
 );
 
 // ---- 밤 이벤트 (벙커에서 잠들기 전) ----
@@ -1429,24 +1483,21 @@ NT("nt_knock", "해치를 두드리는 소리",
 // 아래는 위 이벤트 데이터를 불러온 뒤 한 번 가공하는 블록입니다. 숫자만 바꿔서 난이도를 조절하세요.
 // (result 에 safe:true 를 달면 밸런스 가공과 환경 피해를 받지 않는 '확실한 보상'이 됩니다. 쉼터에 씁니다.)
 (function(){
-  const G = window.GAME_DATA, EV = G.events;
+  const G = window.GAME_DATA, BASE = JSON.parse(JSON.stringify(G.events));   // 원본을 보관해 두고, 판이 시작될 때마다(G.rebalance) 그 판의 지역 순서에 맞춰 다시 가공한다
 
   // 1) 줄거리 이벤트가 끝나면 다음 단계의 길을 알려 주는 단서를 쥐여 준다. (엔진이 이미 가진 단서면 건너뛴다)
   const CLUES = { s1_radio:"clue_radio", s2_records:"clue_records", ind_s1:"clue_ledger", ind_s3:"clue_powermap",
     lake_s1:"clue_chart", lake_s2:"clue_lamplog", city_s1:"clue_notice", city_s2:"clue_cableplan",
     mtn_s1:"clue_cabinnote", mtn_s2:"clue_cablelog", mtn_s3:"clue_topplan" };
   const mapLeaf = (r, f) => r.roll ? { roll: r.roll.map(([w, x]) => [w, mapLeaf(x, f)]) } : f(r);
-  EV.forEach(e => { const it = CLUES[e.id]; if(!it) return;
-    e.choices.forEach(ch => { ch.result = mapLeaf(ch.result, r => (r.ending || r.again) ? r : Object.assign({}, r, { clue: it })); });
-  });
-
   // 2) 지역별 밸런스 (반복 이벤트 중심). 값이 클수록 '후하다/위험하다'.
   const REG = {}; for(const k in G.places) G.places[k].forEach(p => REG[p.id] = k);
+  // 숫자는 "몇 번째로 간 지역인가"(0=시작 지역 … 4=산악지대) 기준 배열입니다.
   const BAL = {
-    keep:   { old:.35, ind:.25, lake:.25, city:.25, mtn:.16 },   // 소모품(통조림·물·붕대·천·부품) 드랍 확률 배율
-    heal:   { old:.85, ind:.65, lake:.65, city:.65, mtn:.5 },    // 회복 결과 확률 배율
-    danger: { old:1,   ind:1.4, lake:1.4, city:1.4, mtn:2.0 },   // 가운데 세 지역은 순서가 판마다 달라 같은 값으로 둔다 (단계별 난이도는 world.js 의 ambient)   // 피해 결과 확률 배율
-    extra:  { old:{},  ind:{},  lake:{},  city:{}, mtn:{ hp:1 } },   // 피해 결과의 추가 피해량
+    keep:   [.35, .3,  .25, .2,  .16],   // 소모품(통조림·물·붕대·천·부품) 드랍 확률 배율
+    heal:   [.85, .75, .65, .55, .5],    // 회복 결과 확률 배율
+    danger: [1,   1.2, 1.5, 1.8, 2.0],   // 피해 결과 확률 배율
+    extra:  [{},  {},  {},  { san:1 }, { hp:1 }],   // 피해 결과의 추가 피해량
     rare:   { can:1, water:1, scrap:.9, cloth:.9, bandage:.7, medicine:.55 }
   };
   // 빈손 문구는 여러 개를 넣어 두고 엔진이 그때그때 하나를 고른다.
@@ -1476,34 +1527,44 @@ NT("nt_knock", "해치를 두드리는 소리",
   const hurtUp = (r, k) => { const x = BAL.extra[k]; if(!x || prot(r)) return r; const o = Object.assign({}, r);
     if(r.hp < 0 && x.hp) o.hp = r.hp - x.hp; if(r.san < 0 && x.san) o.san = r.san - x.san; return o; };
 
-  EV.forEach(e => {
-    if(e.type === "story") return;
-    const k = REG[e.place]; if(!k) return;
-    const hasTake = e.choices.some(ch => JSON.stringify(ch.result).includes('"take"'));
-    e.choices.forEach(ch => {
-      const r0 = ch.result;
-      if(r0.roll){
-        const wrap = e.repeat && !hasTake && !FIXED.test(ch.text);   // 일회성 이벤트·고정형 선택지는 확률만 손본다
-        let removed = 0, any = false;
-        const br = r0.roll.map(([w, x]) => {
-          if(isDrop(x)){ any = true; if(!e.repeat) return [w, x]; const nw = w * BAL.keep[k] * rareOf(x); removed += w - nw; return [nw, x]; }
-          if(isHeal(x)){ if(!e.repeat) return [w, x]; const nw = w * BAL.heal[k]; removed += w - nw; return [nw, x]; }
-          if(isHurt(x)) return [w * BAL.danger[k], hurtUp(x, k)];
-          return [w, x];
-        });
-        if(wrap && any && removed > 0.01){
-          const hd = HURT[k], hw = removed * (k === "old" ? 0.15 : 0.4);
-          br.push([removed - hw, { t: NEUTRAL[k] }]); br.push([hw, pick(hd)]);
-        } else if(!wrap && removed > 0.01){   // 감쌀 수 없으면 줄인 가중치를 되돌린다
-          ch.result = r0; return;
-        }
-        ch.result = { roll: br };
-      } else if(e.repeat && !hasTake && !FIXED.test(ch.text) && isDrop(r0)){
-        const kp = Math.min(0.9, BAL.keep[k] * rareOf(r0) * 1.3);   // 단독 결과는 조금 더 후하게 둔다
-        ch.result = { roll: [[kp, r0], [(1 - kp) * 0.6, { t: NEUTRAL[k] }], [(1 - kp) * 0.4, k === "old" ? { t: NEUTRAL[k] } : pick(HURT[k])]] };
-      } else if(isHurt(r0)){
-        ch.result = hurtUp(r0, k);
-      }
+  G.rebalance = function(route){
+    route = route || ["old","ind","lake","city","mtn"];
+    const EV = JSON.parse(JSON.stringify(BASE));
+  EV.forEach(e => { const it = CLUES[e.id]; if(!it) return;
+      e.choices.forEach(ch => { ch.result = mapLeaf(ch.result, r => (r.ending || r.again) ? r : Object.assign({}, r, { clue: it })); });
     });
-  });
+  EV.forEach(e => {
+      if(e.type === "story") return;
+      const k = REG[e.place]; if(!k) return;
+      const st = Math.max(0, route.indexOf(k));
+      const hasTake = e.choices.some(ch => JSON.stringify(ch.result).includes('"take"'));
+      e.choices.forEach(ch => {
+        const r0 = ch.result;
+        if(r0.roll){
+          const wrap = e.repeat && !hasTake && !FIXED.test(ch.text);   // 일회성 이벤트·고정형 선택지는 확률만 손본다
+          let removed = 0, any = false;
+          const br = r0.roll.map(([w, x]) => {
+            if(isDrop(x)){ any = true; if(!e.repeat) return [w, x]; const nw = w * BAL.keep[st] * rareOf(x); removed += w - nw; return [nw, x]; }
+            if(isHeal(x)){ if(!e.repeat) return [w, x]; const nw = w * BAL.heal[st]; removed += w - nw; return [nw, x]; }
+            if(isHurt(x)) return [w * BAL.danger[st], hurtUp(x, st)];
+            return [w, x];
+          });
+          if(wrap && any && removed > 0.01){
+            const hd = HURT[k], hw = removed * (st === 0 ? 0.15 : 0.4);
+            br.push([removed - hw, { t: NEUTRAL[k] }]); br.push([hw, pick(hd)]);
+          } else if(!wrap && removed > 0.01){   // 감쌀 수 없으면 줄인 가중치를 되돌린다
+            ch.result = r0; return;
+          }
+          ch.result = { roll: br };
+        } else if(e.repeat && !hasTake && !FIXED.test(ch.text) && isDrop(r0)){
+          const kp = Math.min(0.9, BAL.keep[st] * rareOf(r0) * 1.3);   // 단독 결과는 조금 더 후하게 둔다
+          ch.result = { roll: [[kp, r0], [(1 - kp) * 0.6, { t: NEUTRAL[k] }], [(1 - kp) * 0.4, st === 0 ? { t: NEUTRAL[k] } : pick(HURT[k])]] };
+        } else if(isHurt(r0)){
+          ch.result = hurtUp(r0, st);
+        }
+      });
+    });
+    G.events = EV;
+  };
+  G.rebalance();
 })();
