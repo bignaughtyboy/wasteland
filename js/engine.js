@@ -23,6 +23,13 @@ function makeRoute(){
   for(let i = mid.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [mid[i], mid[j]] = [mid[j], mid[i]]; }
   return ["old", ...mid, "mtn"];
 }
+const REG = id => D.regions.find(r => r.id === id);
+// 지도 위 좌표로 두 지역 사이의 방위를 구한다 (위쪽이 북). 단서는 지역 이름 대신 이 방위와 풍경(land)만 알려 준다.
+function dirTo(a, b){
+  const A = REG(a), B = REG(b); if(!A || !B) return "";
+  const ang = (Math.atan2(B.x - A.x, -(B.y - A.y)) * 180 / Math.PI + 360) % 360;
+  return ["북","북동","동","남동","남","남서","서","북서"][Math.round(ang / 45) % 8] + "쪽";
+}
 const REGNAME = id => (D.regions.find(r => r.id === id) || {}).name || "";
 const JOSA = { "은":["은","는"], "이":["이","가"], "을":["을","를"], "과":["과","와"], "이라고":["이라고","라고"], "으로":["으로","로"] };
 function josa(w, k){
@@ -34,9 +41,12 @@ function josa(w, k){
 function tx(str, rid){
   if(!str || str.indexOf("{") < 0) return str;
   const R = S.route || ["old","ind","lake","city","mtn"];
-  return str.replace(/\{(R[1-4]|next|prev)(?::([^}]+))?\}/g, (m, k, j) => {
-    const i = R.indexOf(rid), id = k === "next" ? R[i + 1] : k === "prev" ? R[i - 1] : R[+k[1]];
-    const nm = id ? REGNAME(id) : "관측소";
+  return str.replace(/\{(R[1-4]|next|prev|dir|land|mdir|mland)(?::([^}]+))?\}/g, (m, k, j) => {
+    const i = R.indexOf(rid);
+    let nm;
+    if(k === "dir" || k === "land"){ const id = R[i + 1]; nm = !id ? "" : k === "dir" ? dirTo(rid, id) : ((REG(id) || {}).land || ""); }
+    else if(k === "mdir" || k === "mland"){ nm = k === "mdir" ? dirTo(rid, "mtn") : ((REG("mtn") || {}).land || ""); }
+    else { const id = k === "next" ? R[i + 1] : k === "prev" ? R[i - 1] : R[+k[1]]; nm = id ? REGNAME(id) : "관측소"; }
     return j ? josa(nm, j) : nm;
   });
 }
@@ -174,10 +184,10 @@ function renderMap(){
     b.className = "node " + (reg ? "place" : "region") + (locked ? " locked" : "") + (S.seen[n.id] ? " seen" : "") + (!reg && S.unlocked[n.id] && !S.seen[n.id] ? " fresh" : "");
     const pl = D.places[n.id];
     const sub = reg ? "" : locked ? "잠김" : (S.unlocked[n.id] && !S.seen[n.id]) ? "새 지역" : pl ? "" : "준비 중";
-    b.innerHTML = `<span class="sign"><span class="ic">${locked ? ICON.lock : ICON[n.icon || (reg ? "dot" : "pin")]}</span><span class="lb"><span class="nm">${n.name}</span>${sub ? `<span class="stt">${sub}</span>` : ""}</span></span>`;
+    b.innerHTML = `<span class="sign"><span class="ic">${locked ? ICON.lock : ICON[n.icon || (reg ? "dot" : "pin")]}</span><span class="lb"><span class="nm">${locked ? "???" : n.name}</span>${sub ? `<span class="stt">${sub}</span>` : ""}</span></span>`;
     b.style.left = Math.min(88, Math.max(12, n.x)) + "%"; b.style.top = Math.min(90, Math.max(8, n.y)) + "%";
     b.disabled = locked;
-    b.setAttribute("aria-label", locked ? n.name + " (잠김)" : n.name);
+    b.setAttribute("aria-label", locked ? "알 수 없는 곳 (잠김)" : n.name);
     b.onclick = () => reg ? explore(n) : (D.places[n.id] ? (S.seen[n.id] = 1, S.region = n.id, save(), render()) : soon(n));
     nodes.appendChild(b);
   });
@@ -379,9 +389,10 @@ function choose(e, c, art, cont, rid0){
   if(r.hp) S.hp = clamp(S.hp + r.hp);
   if(r.san) S.san = clamp(S.san + r.san);
   (r.take||[]).forEach(i => { const k = S.inv.indexOf(i); if(k>=0) S.inv.splice(k,1); });
-  r = Object.assign({}, r, { give: (r.give||[]).filter(i => !(D.items[i].clue && S.inv.includes(i))) });   // 단서는 한 번만 얻는다
+  r = Object.assign({}, r, { give: (r.give||[]).filter(i => !(D.items[i].clue && (S.inv.includes(i) || (D.items[i].until && S.done[D.items[i].until])))) });   // 단서는 한 번만 얻고, 이미 쓸모를 다한 단서는 다시 얻지 않는다
   r.give.forEach(i => S.inv.push(i));
   const amb = ambient(e, r);
+  pruneClues().forEach(nm => amb.push([`다 쓴 단서를 정리했다 · ${nm}`, false]));
   Object.assign(S.flags, r.set||{});
   if((r.unlock||[]).length){ const R = S.route, nx = R[R.indexOf(rid) + 1]; if(nx) S.unlocked[nx] = 1; }   // 지금 지역의 "다음 지역"이 열린다 (순서는 판마다 다름)
   if((r.unlock||[]).length) SND.play("ending"); else if(r.hp < 0) SND.play("hurt"); else if(r.san < 0) SND.play("mind");
@@ -392,6 +403,12 @@ function choose(e, c, art, cont, rid0){
     el.innerHTML = chips(r, amb) + `<button class="choice" id="next">계속</button>`;
     $("#next").onclick = () => (cont && !r.ending && S.hp > 0 && S.san > 0) ? cont() : afterEvent(r.ending);
   } });
+}
+// 단서는 item.until(그 단서가 가리키던 사건)이 끝나면 쓸모를 다한 것으로 보고 가방에서 치운다.
+function pruneClues(){
+  const gone = [];
+  S.inv = S.inv.filter(i => { const it = D.items[i]; if(it && it.until && S.done[it.until]){ gone.push(it.name); return false; } return true; });
+  return gone;
 }
 // 후반 지역의 환경 피해: world.js 의 ambient 설정대로 탐험 때마다 확률적으로 체력·정신력이 깎인다.
 function ambient(e, r){
@@ -571,8 +588,12 @@ function showClue(id){
   $("#x").onclick = showBag;
 }
 function showBag(){
-  const stacks = [];
-  S.inv.forEach(id => { const st = stacks.find(x => x.id === id); st ? st.n++ : stacks.push({ id, n:1 }); });
+  // 물품은 칸에, 단서 쪽지는 아래 '수첩'에 따로 모은다.
+  const stacks = [], notes = [];
+  S.inv.forEach(id => {
+    if(D.items[id].clue){ if(!notes.includes(id)) notes.push(id); return; }
+    const st = stacks.find(x => x.id === id); st ? st.n++ : stacks.push({ id, n:1 });
+  });
   if(!stacks.find(x => x.id === bagSel)) bagSel = stacks.length ? stacks[0].id : null;
   const total = Math.max(D.bagSlots || 20, stacks.length);
   const slots = Array.from({ length: total }, (_, i) => {
@@ -581,12 +602,13 @@ function showBag(){
   }).join("");
   const it = bagSel && D.items[bagSel];
   const detail = it
-    ? `<div class="detail"><div><strong>${it.name}${it.clue ? ` <em class="clue-tag">단서</em>` : ""}</strong><small>${tx(it.desc, it.of)}</small></div>${it.use ? `<button id="use">사용</button>` : ""}${it.read ? `<button id="read">자세히</button>` : ""}${it.craft && S.inv.filter(x => x === bagSel).length >= it.craft.need ? `<button id="craft">${it.craft.label}</button>` : ""}</div>`
+    ? `<div class="detail"><div><strong>${it.name}</strong><small>${it.desc}</small></div>${it.use ? `<button id="use">사용</button>` : ""}${it.craft && S.inv.filter(x => x === bagSel).length >= it.craft.need ? `<button id="craft">${it.craft.label}</button>` : ""}</div>`
     : `<div class="detail"><small>가방이 비어 있다. 탐험에서 쓸 만한 물건을 찾아보자.</small></div>`;
-  show(`<h2>가방 <small class="cnt">${S.inv.length}개</small></h2><div class="grid">${slots}</div>${detail}<button class="choice" id="x">닫기</button>`, "bag");
+  const noteHTML = `<div class="notes"><h3>수첩</h3>${notes.length ? notes.map(id => `<button class="note" data-note="${id}"><span class="ic">${itemIcon(id)}</span><span class="nm">${D.items[id].name}</span><em>읽기</em></button>`).join("") : `<p class="empty">아직 적어 둔 단서가 없다.</p>`}</div>`;
+  show(`<h2>가방 <small class="cnt">${S.inv.length - notes.length}개</small></h2><div class="grid">${slots}</div>${detail}${noteHTML}<button class="choice" id="x">닫기</button>`, "bag");
   $("#x").onclick = close;
+  document.querySelectorAll(".note").forEach(b => b.onclick = () => showClue(b.dataset.note));
   document.querySelectorAll(".slot.full").forEach(b => b.onclick = () => { bagSel = b.dataset.id; showBag(); });
-  if($("#read")) $("#read").onclick = () => showClue(bagSel);
   if($("#craft")) $("#craft").onclick = () => { const cr = D.items[bagSel].craft; for(let n = 0; n < cr.need; n++) S.inv.splice(S.inv.indexOf(bagSel), 1); S.inv.push(cr.to); addLog(`${iname(bagSel)} ${cr.need}개로 ${iname(cr.to)} 제작`); SND.play("item"); save(); render(); bagSel = cr.to; showBag(); };
   const use = $("#use");
   if(use) use.onclick = () => {
