@@ -11,11 +11,37 @@ const norm = o => {
   if(o.act == null) o.act = ACT;
   if(!o.view) o.view = "bunker";
   if(!o.pity) o.pity = {};
+  if(!o.route) o.route = ["old","ind","lake","city","mtn"];   // 이전 버전 세이브는 원래 순서 그대로
   return o;
 };
 let S = norm(load()) || fresh();
 
-function fresh(){ return { started:false, unlocked:{}, hp:MAX, san:MAX, inv:[], flags:{}, done:{}, seen:{}, log:[], region:null, over:null, day:1, act:ACT, view:"bunker", pity:{} }; }
+// ---------- 판마다 달라지는 지역 순서 ----------
+// 구도심에서 시작해 산악지대(관측소)로 끝나고, 사이의 세 지역(산업지대·호수·신도시)은 새 게임마다 순서가 섞인다.
+function makeRoute(){
+  const mid = ["ind","lake","city"];
+  for(let i = mid.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [mid[i], mid[j]] = [mid[j], mid[i]]; }
+  return ["old", ...mid, "mtn"];
+}
+const REGNAME = id => (D.regions.find(r => r.id === id) || {}).name || "";
+const JOSA = { "은":["은","는"], "이":["이","가"], "을":["을","를"], "과":["과","와"], "이라고":["이라고","라고"], "으로":["으로","로"] };
+function josa(w, k){
+  const ch = w.charCodeAt(w.length - 1) - 0xAC00, has = ch >= 0 && ch % 28 !== 0, j = JOSA[k];
+  if(!j) return w + k;
+  return w + (k === "으로" ? (has && ch % 28 !== 8 ? j[0] : j[1]) : (has ? j[0] : j[1]));
+}
+// 글 속 {R1}{R2}{R3}(이번 판의 1~3번째 지역) {next}(지금 지역의 다음 지역) {prev} 를 이번 판 이름으로 바꾼다. {next:으로} 처럼 조사도 붙는다.
+function tx(str, rid){
+  if(!str || str.indexOf("{") < 0) return str;
+  const R = S.route || ["old","ind","lake","city","mtn"];
+  return str.replace(/\{(R[1-4]|next|prev)(?::([^}]+))?\}/g, (m, k, j) => {
+    const i = R.indexOf(rid), id = k === "next" ? R[i + 1] : k === "prev" ? R[i - 1] : R[+k[1]];
+    const nm = id ? REGNAME(id) : "관측소";
+    return j ? josa(nm, j) : nm;
+  });
+}
+const stageOf = rid => (S.route || []).indexOf(rid);
+function fresh(){ return { route:makeRoute(), started:false, unlocked:{}, hp:MAX, san:MAX, inv:[], flags:{}, done:{}, seen:{}, log:[], region:null, over:null, day:1, act:ACT, view:"bunker", pity:{} }; }
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 const clamp = v => Math.max(0, Math.min(MAX, v));
@@ -53,9 +79,12 @@ function flash(sel, cls){ const el = $(sel); el.classList.remove("hit","gain"); 
   }
 })();
 function stateOf(list, v){ const s = list && list.find(x => v>=x[0] && v<=x[1]); return s ? s[2] : ""; }
+// 동행 인물 표시: D.cast 의 with 깃발이 켜져 있으면 동행 중, hurt 깃발이 켜져 있으면 부상 중
+const party = () => (D.cast || []).filter(c => S.flags[c.with]);
+const partyLine = () => party().length ? `<span class="party">동행 · ${party().map(c => c.name + (S.flags[c.hurt] ? "(부상)" : "")).join(", ")}</span>` : "";
 function render(){
   { const g = [...S.inv].reverse().map(i => D.items[i]).find(it => it && it.clue && it.hint), el = $("#bk-goal");
-    if(el) el.innerHTML = S.flags.intro ? `<small>${g ? "다음 단서" : "목표"}</small>${esc(g ? g.hint.replace(/^다음 단서 → /, "") : "밖으로 나가 단서를 찾자.")}` : ""; }
+    if(el) el.innerHTML = S.flags.intro ? `<small>${g ? "다음 단서" : "목표"}</small>${esc(tx(g ? g.hint.replace(/^다음 단서 → /, "") : "밖으로 나가 단서를 찾자.", g && g.of))}${partyLine()}` : ""; }
   const bar = (v,id) => { $(id).innerHTML = Array.from({length:MAX},(_,i)=>`<b class="${i<v?'on':''}"></b>`).join(""); };
   bar(S.hp,"#hp-bar"); bar(S.san,"#san-bar");
   if(prev){
@@ -210,7 +239,8 @@ function addLog(t){ S.log.unshift(t); S.log = S.log.slice(0,60); }
 function regionOf(placeId){ for(const k in D.places){ if(D.places[k].some(p => p.id===placeId)) return k; } return null; }
 // 이벤트 뽑기: ① 스토리 이벤트는 조건을 만족하면 일정 확률(chance)로만 ② 아주 낮은 확률로 "아무것도 없음" ③ 나머지는 가중치로 (직전에 본 이벤트는 피함)
 function pickEvent(placeId){
-  const pool = D.events.filter(e => e.place===placeId && (e.repeat || !S.done[e.id]) && ok(e.req));
+  const st = stageOf(regionOf(placeId));   // e.stage: 이번 판의 n번째 지역 어디서든 나오는 인물 이벤트
+  const pool = D.events.filter(e => (e.place===placeId || (e.stage != null && (Array.isArray(e.stage) ? e.stage.includes(st) : e.stage === st))) && (e.repeat || !S.done[e.id]) && ok(e.req));
   const stories = pool.filter(e => e.type==="story" || e.type==="fixed");
   const pity = Math.min((S.pity[placeId] || 0) * (D.pityStep || 0.1), D.pityMax || 0.35);   // 줄거리를 못 만난 횟수만큼 확률 보정
   for(const e of stories){
@@ -261,7 +291,7 @@ function pickText(norm, lowHp, lowSan){
 function confirmSleep(){
   const t = pickText(D.sleepPrompts, D.sleepPromptsLowHp, D.sleepPromptsLowSan);
   show(`<h2>잠들기</h2><p>${t.replace(/\n/g,"<br>")}</p><button class="choice" data-i="0" id="sl"><b class="no">1</b><span class="t">잠든다</span></button><button class="choice" data-i="1" id="no"><b class="no">2</b><span class="t">아직 잠들지 않는다</span></button>`);
-  $("#sl").onclick = () => sleep(bunkerArt()); $("#no").onclick = close;
+  $("#sl").onclick = () => mealStep(() => nightEvent(() => sleep(bunkerArt()))); $("#no").onclick = close;
 }
 $("#bk-go").onclick = () => setView("map", true);
 $("#bk-sleep").onclick = confirmSleep;
@@ -274,8 +304,27 @@ function showIntro(){
     $("#ok").onclick = () => { items.forEach(i => S.inv.push(i)); S.flags.intro = 1; S.act = ACT; addLog("벙커에서 눈을 떴다. 1일차."); SND.play("item"); save(); close(); render(); };
   } });
 }
+// 하루의 끝: ① 식사 고르기(먹을수록 많이 회복) ② 밤 이벤트(동행 인물·라디오·꿈) ③ 아침
+let meal = null;
+function mealStep(next){
+  const M = D.meals || {}, base = D.sleep || {};
+  const opts = ["can","water"].filter(i => S.inv.includes(i) && M[i]).map(i => ({ id:i, text:M[i].text, hp:M[i].hp, san:M[i].san }));
+  opts.push({ id:null, text: opts.length ? "아껴 두고 그냥 눕는다." : "먹을 것이 없다. 허기를 참고 눕는다.", hp:base.hp || 0, san:base.san || 0 });
+  const fx = o => [o.hp ? `체력 +${o.hp}` : "", o.san ? `정신력 +${o.san}` : "", o.id ? `${iname(o.id)} -1` : ""].filter(Boolean).join(" · ") || "회복 없음";
+  show(`<h2>밤</h2>${(D.mealLead || "하루가 끝났다. 가방 속에 남은 것을 헤아려 본다.").split("\n\n").map(t => `<p>${t}</p>`).join("")}${opts.map((o,i) => `<button class="choice" data-i="${i}"><b class="no">${i+1}</b><span><span class="t">${o.text}</span><span class="hint">${fx(o)}</span></span></button>`).join("")}`);
+  document.querySelectorAll("#sheet .choice").forEach(b => b.onclick = () => {
+    const o = opts[+b.dataset.i];
+    if(o.id){ const k = S.inv.indexOf(o.id); if(k >= 0) S.inv.splice(k, 1); }
+    meal = { hp:o.hp, san:o.san }; save(); render(); next();
+  });
+}
+function nightEvent(next){
+  const e = (D.nights || []).find(n => (n.repeat || !S.done[n.id]) && ok(n.req) && Math.random() < (n.chance == null ? .3 : n.chance));
+  if(!e) return next();
+  S.lastEvent = e.id; SND.play("open"); present(e, bunkerArt(), next, S.region || "old");
+}
 function sleep(art){
-  const r = D.sleep || {};
+  const r = meal || D.sleep || {}; meal = null;
   S.day++; S.act = ACT;
   if(r.hp) S.hp = clamp(S.hp + r.hp); if(r.san) S.san = clamp(S.san + r.san);
   addLog(`${S.day}일차 아침`); SND.play("heal"); save(); render();
@@ -300,16 +349,22 @@ function explore(place){
   }
   S.lastEvent = e.id; save();
   SND.play("open");
+  present(e, art, null, regionOf(place.id));
+}
+// 이벤트 장면을 보여 준다. cont 가 있으면 결과 뒤에 afterEvent 대신 cont 를 부른다(밤 이벤트용).
+function present(e, art, cont, rid){
+  const T_ = t => tx(t, rid);
   const t = (S.san <= D.lowSan && e.textLow) ? e.textLow : e.text;
-  scene({ title: e.title, art, pgs: pages(t), finish: el => {
+  scene({ title: e.title, art, pgs: pages(T_(t)), finish: el => {
     el.innerHTML = e.choices.map((c,i) => {
       const can = ok(c.req);
-      return `<button class="choice" data-i="${i}" ${can?"":"disabled"}><b class="no">${i+1}</b><span><span class="t">${c.text}</span>${can?"":`<span class="hint">${need(c.req)}</span>`}</span></button>`;
+      return `<button class="choice" data-i="${i}" ${can?"":"disabled"}><b class="no">${i+1}</b><span><span class="t">${T_(c.text)}</span>${can?"":`<span class="hint">${need(c.req)}</span>`}</span></button>`;
     }).join("");
-    el.querySelectorAll(".choice").forEach(b => b.onclick = () => choose(e, e.choices[+b.dataset.i], art));
+    el.querySelectorAll(".choice").forEach(b => b.onclick = () => choose(e, e.choices[+b.dataset.i], art, cont, rid));
   } });
 }
-function choose(e, c, art){
+function choose(e, c, art, cont, rid0){
+  const rid = rid0 || regionOf(e.place);
   let r = c.result;
   if(r.roll){   // 확률로 결과 하나 고르기
     let t = Math.random() * r.roll.reduce((a,x) => a + x[0], 0);
@@ -317,6 +372,7 @@ function choose(e, c, art){
   }
   if(!e.repeat && !r.again) S.done[e.id] = 1;
   if(r.t === "__minjae__") r = minjaeResult();
+  if(r.take && !Array.isArray(r.take)) r = Object.assign({}, r, { take:[r.take] });
   if(Array.isArray(r.t)) r = Object.assign({}, r, { t: r.t[Math.floor(Math.random() * r.t.length)] });   // 문구 여러 개 중 하나
   let newClue = null;   // 줄거리가 쥐여 주는 단서: 이미 가졌으면 지급도 안내문도 없다
   if(r.clue && !S.inv.includes(r.clue)){ newClue = r.clue; r = Object.assign({}, r, { give: (r.give||[]).concat(r.clue), t: r.t + `\n\n알아낸 것을 쪽지로 정리해 가방에 넣었다. (가방 → ${D.items[r.clue].name})` }); }
@@ -327,14 +383,14 @@ function choose(e, c, art){
   r.give.forEach(i => S.inv.push(i));
   const amb = ambient(e, r);
   Object.assign(S.flags, r.set||{});
-  (r.unlock||[]).forEach(id => S.unlocked[id] = 1);
+  if((r.unlock||[]).length){ const R = S.route, nx = R[R.indexOf(rid) + 1]; if(nx) S.unlocked[nx] = 1; }   // 지금 지역의 "다음 지역"이 열린다 (순서는 판마다 다름)
   if((r.unlock||[]).length) SND.play("ending"); else if(r.hp < 0) SND.play("hurt"); else if(r.san < 0) SND.play("mind");
   else if(r.hp > 0 || r.san > 0) SND.play("heal"); else if((r.give||[]).length) SND.play("item");
-  addLog(`[${e.title}] ${c.text}`);
+  addLog(`[${e.title}] ${tx(c.text, rid)}`);
   save();
-  scene({ title: e.title, art, pgs: pages(r.t), finish: el => {
+  scene({ title: e.title, art, pgs: pages(tx(r.t, rid)), finish: el => {
     el.innerHTML = chips(r, amb) + `<button class="choice" id="next">계속</button>`;
-    $("#next").onclick = () => afterEvent(r.ending);
+    $("#next").onclick = () => (cont && !r.ending && S.hp > 0 && S.san > 0) ? cont() : afterEvent(r.ending);
   } });
 }
 // 후반 지역의 환경 피해: world.js 의 ambient 설정대로 탐험 때마다 확률적으로 체력·정신력이 깎인다.
@@ -342,7 +398,9 @@ function ambient(e, r){
   const a = D.ambient && D.ambient[regionOf(e.place)], out = [];
   if(!a || e.type === "story" || r.safe || r.ending || (r.unlock||[]).length) return out;
   [["hp","체력"],["san","정신력"]].forEach(([k,nm]) => {
-    const x = a[k]; if(!x || Math.random() >= x.p) return;
+    const x = a[k], cover = 1 - 0.2 * party().filter(c => !S.flags[c.hurt]).length;   // 멀쩡한 동행이 있으면 환경 피해가 줄어든다
+    const mul = (D.ambientStage || {})[stageOf(regionOf(e.place) || S.region)] || 1;      // 뒤에 간 지역일수록 거칠다
+    if(!x || Math.random() >= x.p * cover * mul) return;
     S[k] = clamp(S[k] - x.n); out.push([`${x.why} ${nm} -${x.n}`, false]);
   });
   if(out.length) addLog(`[${e.title}] ${out.map(o => o[0]).join(", ")}`);
@@ -509,7 +567,7 @@ let bagSel = null;
 // 단서 아이템 자세히 보기: item.read 본문을 종이 쪽지처럼 보여 준다.
 function showClue(id){
   const it = D.items[id];
-  show(`<h2>${it.name}</h2><div class="clue-paper">${it.read.split("\n\n").map(p => `<p>${p.replace(/\n/g,"<br>")}</p>`).join("")}</div>${it.hint ? `<div class="clue-hint">${it.hint}</div>` : ""}<button class="choice" id="x">돌아가기</button>`, "bag read");
+  show(`<h2>${it.name}</h2><div class="clue-paper">${tx(it.read, it.of).split("\n\n").map(p => `<p>${p.replace(/\n/g,"<br>")}</p>`).join("")}</div>${it.hint ? `<div class="clue-hint">${tx(it.hint, it.of)}</div>` : ""}<button class="choice" id="x">돌아가기</button>`, "bag read");
   $("#x").onclick = showBag;
 }
 function showBag(){
@@ -523,7 +581,7 @@ function showBag(){
   }).join("");
   const it = bagSel && D.items[bagSel];
   const detail = it
-    ? `<div class="detail"><div><strong>${it.name}${it.clue ? ` <em class="clue-tag">단서</em>` : ""}</strong><small>${it.desc}</small></div>${it.use ? `<button id="use">사용</button>` : ""}${it.read ? `<button id="read">자세히</button>` : ""}${it.craft && S.inv.filter(x => x === bagSel).length >= it.craft.need ? `<button id="craft">${it.craft.label}</button>` : ""}</div>`
+    ? `<div class="detail"><div><strong>${it.name}${it.clue ? ` <em class="clue-tag">단서</em>` : ""}</strong><small>${tx(it.desc, it.of)}</small></div>${it.use ? `<button id="use">사용</button>` : ""}${it.read ? `<button id="read">자세히</button>` : ""}${it.craft && S.inv.filter(x => x === bagSel).length >= it.craft.need ? `<button id="craft">${it.craft.label}</button>` : ""}</div>`
     : `<div class="detail"><small>가방이 비어 있다. 탐험에서 쓸 만한 물건을 찾아보자.</small></div>`;
   show(`<h2>가방 <small class="cnt">${S.inv.length}개</small></h2><div class="grid">${slots}</div>${detail}<button class="choice" id="x">닫기</button>`, "bag");
   $("#x").onclick = close;
