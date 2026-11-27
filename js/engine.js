@@ -97,8 +97,7 @@ function stateOf(list, v){ const s = list && list.find(x => v>=x[0] && v<=x[1]);
 const party = () => (D.cast || []).filter(c => S.flags[c.with]);
 const partyLine = () => party().length ? `<span class="party">동행 · ${party().map(c => c.name + (S.flags[c.hurt] ? "(부상)" : "")).join(", ")}</span>` : "";
 function render(){
-  { const g = [...S.inv].reverse().map(i => D.items[i]).find(it => it && it.clue && it.hint), el = $("#bk-goal");
-    if(el) el.innerHTML = S.flags.intro ? `<small>${g ? "다음 단서" : "목표"}</small>${esc(tx(g ? g.hint.replace(/^다음 단서 → /, "") : "밖으로 나가 단서를 찾자.", g && g.of))}${partyLine()}` : ""; }
+  { const el = $("#bk-party"); if(el) el.innerHTML = S.flags.intro ? partyLine() : ""; }
   const bar = (v,id) => { $(id).innerHTML = Array.from({length:MAX},(_,i)=>`<b class="${i<v?'on':''}"></b>`).join(""); };
   bar(S.hp,"#hp-bar"); bar(S.san,"#san-bar");
   if(prev){
@@ -126,10 +125,10 @@ function render(){
   prevDay = S.day;
   // 활동력: 등불이 작아지고 칸이 줄어든다
   $("#act-bar").innerHTML = Array.from({length:ACT},(_,i)=>`<b class="${i<S.act?'on':''}"></b>`).join("");
-  $("#act-num").innerHTML = `${S.act}<small>/${ACT}</small>`;
+  $("#act-num").textContent = S.act <= 0 ? "밤" : (D.phases || [])[S.act - 1] || "";
   const fl = $("#flame"), k = S.act / ACT;
   fl.style.transform = `translateY(${((1-k)*8).toFixed(1)}px) scale(${(0.55 + 0.45*k).toFixed(2)})`; fl.style.transformOrigin = "32px 46px"; fl.style.opacity = S.act > 0 ? 1 : 0;
-  $("#v-act").classList.toggle("low", S.act <= 1);
+  $("#v-act").classList.toggle("low", S.act <= 2);
   applyView();
   renderMap();
 }
@@ -303,10 +302,14 @@ function pickText(norm, lowHp, lowSan){
   return lastSlp = pool[Math.floor(Math.random()*pool.length)];
 }
 function confirmSleep(){
-  const t = pickText(D.sleepPrompts, D.sleepPromptsLowHp, D.sleepPromptsLowSan);
-  show(`<h2>잠들기</h2><p>${t.replace(/\n/g,"<br>")}</p><button class="choice" data-i="0" id="sl"><b class="no">1</b><span class="t">잠든다</span></button><button class="choice" data-i="1" id="no"><b class="no">2</b><span class="t">아직 잠들지 않는다</span></button>`);
-  $("#sl").onclick = () => mealStep(() => nightEvent(() => sleep(bunkerArt()))); $("#no").onclick = close;
+  if(S.act > (D.sleepAt == null ? 2 : D.sleepAt)){
+    return show(`<h2>잠들기</h2><p>${D.tooEarly || "아직 해가 높다. 지금 눕기에는 이르다."}</p><button class="choice" id="no">알겠다</button>`), $("#no").onclick = close;
+  }
+  const t = pickText(D.sleepPrompts, D.sleepPromptsLowHp, D.sleepPromptsLowSan), r = D.bunkerSleep || { hp:2, san:1 };
+  show(`<h2>잠들기</h2><p>${t.replace(/\n/g,"<br>")}</p><div class="chips"><span class="pos">체력 +${r.hp}</span><span class="pos">정신력 +${r.san}</span></div><button class="choice" data-i="0" id="sl"><b class="no">1</b><span class="t">잠든다</span></button><button class="choice" data-i="1" id="no"><b class="no">2</b><span class="t">아직 잠들지 않는다</span></button>`);
+  $("#sl").onclick = () => sleep(bunkerArt(), false); $("#no").onclick = close;
 }
+
 $("#bk-go").onclick = () => setView("map", true);
 $("#bk-sleep").onclick = confirmSleep;
 $("#bk-inv").onclick = () => $("#btn-inv").click();
@@ -315,52 +318,59 @@ function showIntro(){
   const st0 = S.route[0], items = ((D.start && D.start.items) || []).concat((D.startItems && D.startItems[st0]) || []);
   const startPg = D.startLines && D.startLines[st0] ? pages(D.startLines[st0]) : [];
   scene({ title: "WASTELAND", art: bunkerArt(), pgs: pages(D.intro).concat(startPg), finish: el => {
-    el.innerHTML = `<div class="chips">${items.map(i => `<span class="pos">획득: ${iname(i)}</span>`).join("")}<span class="pos">활동력 ${ACT}</span></div><button class="choice" id="ok">눈을 뜬다</button>`;
+    el.innerHTML = `<div class="chips">${items.map(i => `<span class="pos">획득: ${iname(i)}</span>`).join("")}</div><button class="choice" id="ok">눈을 뜬다</button>`;
     $("#ok").onclick = () => { items.forEach(i => S.inv.push(i)); S.flags.intro = 1; S.act = ACT; addLog("벙커에서 눈을 떴다. 1일차."); SND.play("item"); save(); close(); render(); };
   } });
 }
 // 하루의 끝: ① 식사 고르기(먹을수록 많이 회복) ② 밤 이벤트(동행 인물·라디오·꿈) ③ 아침
 let meal = null;
-function mealStep(next){
+function mealStep(next, isCamp){
   const M = D.meals || {}, base = D.sleep || {};
   const opts = ["can","water"].filter(i => S.inv.includes(i) && M[i]).map(i => ({ id:i, text:M[i].text, hp:M[i].hp, san:M[i].san }));
   opts.push({ id:null, text: opts.length ? "아껴 두고 그냥 눕는다." : "먹을 것이 없다. 허기를 참고 눕는다.", hp:base.hp || 0, san:base.san || 0 });
   const fx = o => [o.hp ? `체력 +${o.hp}` : "", o.san ? `정신력 +${o.san}` : "", o.id ? `${iname(o.id)} -1` : ""].filter(Boolean).join(" · ") || "회복 없음";
-  show(`<h2>밤</h2>${(D.mealLead || "하루가 끝났다. 가방 속에 남은 것을 헤아려 본다.").split("\n\n").map(t => `<p>${t}</p>`).join("")}${opts.map((o,i) => `<button class="choice" data-i="${i}"><b class="no">${i+1}</b><span><span class="t">${o.text}</span><span class="hint">${fx(o)}</span></span></button>`).join("")}`);
+  show(`<h2>${isCamp ? "야영" : "밤"}</h2>${((isCamp ? D.campLead : D.mealLead) || "하루가 끝났다. 가방 속에 남은 것을 헤아려 본다.").split("\n\n").map(t => `<p>${t}</p>`).join("")}${opts.map((o,i) => `<button class="choice" data-i="${i}"><b class="no">${i+1}</b><span><span class="t">${o.text}</span><span class="hint">${fx(o)}</span></span></button>`).join("")}`);
   document.querySelectorAll("#sheet .choice").forEach(b => b.onclick = () => {
     const o = opts[+b.dataset.i];
     if(o.id){ const k = S.inv.indexOf(o.id); if(k >= 0) S.inv.splice(k, 1); }
     meal = { hp:o.hp, san:o.san }; save(); render(); next();
   });
 }
-function nightEvent(next){
+function nightEvent(next, art){
   const e = (D.nights || []).find(n => (n.repeat || !S.done[n.id]) && ok(n.req) && Math.random() < (n.chance == null ? .3 : n.chance));
   if(!e) return next();
-  S.lastEvent = e.id; SND.play("open"); present(e, bunkerArt(), next, S.region || "old");
+  S.lastEvent = e.id; SND.play("open"); present(e, art || bunkerArt(), next, S.region || S.route[0]);
 }
-function sleep(art){
-  const r = meal || D.sleep || {}; meal = null;
+function sleep(art, camp){
+  const r = camp ? (meal || D.sleep || {}) : (D.bunkerSleep || { hp:2, san:1 }); meal = null;
   S.day++; S.act = ACT;
   if(r.hp) S.hp = clamp(S.hp + r.hp); if(r.san) S.san = clamp(S.san + r.san);
   addLog(`${S.day}일차 아침`); SND.play("heal"); save(); render();
-  const t = pickText(D.mornings, D.morningsLowHp, D.morningsLowSan), extra = D.dayLines && D.dayLines[S.day];
+  const low = S.hp <= 4 ? "LowHp" : S.san <= 4 ? "LowSan" : "";
+  const pool = camp ? (D["campMornings" + low] || D.campMornings) : (D["mornings" + low] || D.mornings);
+  const t = pickText(pool, camp ? D.campMorningsLowHp : D.morningsLowHp, camp ? D.campMorningsLowSan : D.morningsLowSan), extra = D.dayLines && D.dayLines[S.day];
   scene({ title: `${S.day}일차`, art, pgs: extra ? [t, extra] : [t], finish: el => {
-    el.innerHTML = `<div class="chips">${r.hp ? `<span class="pos">체력 +${r.hp}</span>` : ""}${r.san ? `<span class="pos">정신력 +${r.san}</span>` : ""}<span class="pos">활동력 ${ACT}</span></div><button class="choice" id="ok">일어난다</button>`;
+    el.innerHTML = `<div class="chips">${r.hp ? `<span class="pos">체력 +${r.hp}</span>` : ""}${r.san ? `<span class="pos">정신력 +${r.san}</span>` : ""}</div><button class="choice" id="ok">일어난다</button>`;
     $("#ok").onclick = close;
   } });
 }
+// 해가 지면 있던 자리에서 야영한다: 식사 → 야영 이벤트 → 아침
+function campArt(){ return `<div class="art bunker-art camp-art"><span class="cap">야영</span></div>`; }
+function checkNight(){
+  if(S.over || !S.flags.intro || S.act > 0 || S.hp <= 0 || S.san <= 0) return false;
+  camp(); return true;
+}
+function camp(){
+  mealStep(() => nightEvent(() => sleep(campArt(), true), campArt()), true);
+}
 function explore(place){
-  if(S.act <= 0){
-    return scene({ title: place.name, art: artHTML(null, place), pgs: ["몸이 무겁다. 더 돌아다니면 쓰러질 것이다.\n\n벙커로 돌아가 쉬어야 한다."], finish: el => {
-      el.innerHTML = `<button class="choice" id="ok">돌아간다</button>`; $("#ok").onclick = close; } });
-  }
-  S.act--; render();
+  S.act = Math.max(0, S.act - 1); render();
   S.seen[place.id] = 1;
   const e = pickEvent(place.id), art = artHTML(e, place);
   if(!e){
     const fl = ((D.fillersBy && D.fillersBy[regionOf(place.id)]) || []).concat(D.fillers), f = fl[Math.floor(Math.random()*fl.length)];
     return scene({ title: place.name, art, pgs: [f], finish: el => {
-      el.innerHTML = `<button class="choice" id="ok">돌아간다</button>`; $("#ok").onclick = () => { close(); render(); save(); }; } });
+      el.innerHTML = `<button class="choice" id="ok">돌아간다</button>`; $("#ok").onclick = () => { close(); render(); save(); checkNight(); }; } });
   }
   S.lastEvent = e.id; save();
   SND.play("open");
@@ -441,7 +451,7 @@ function afterEvent(ending){
   if(ending) return end(ending);
   if(S.hp <= 0) return end(deathId());
   if(S.san <= 0) return collapse();
-  close(); render();
+  close(); render(); checkNight();
 }
 function collapse(){
   S.hp = clamp(S.hp - 2); S.san = 3; addLog("[정신 붕괴] 의식을 잃었다."); save();
@@ -590,8 +600,8 @@ function itemIcon(id){
 let bagSel = null;
 // 단서 아이템 자세히 보기: item.read 본문을 종이 쪽지처럼 보여 준다.
 function showClue(id){
-  const it = D.items[id];
-  show(`<h2>${it.name}</h2><div class="clue-paper">${tx(it.read, it.of).split("\n\n").map(p => `<p>${p.replace(/\n/g,"<br>")}</p>`).join("")}</div>${it.hint ? `<div class="clue-hint">${tx(it.hint, it.of)}</div>` : ""}<button class="choice" id="x">돌아가기</button>`, "bag read");
+  const it = D.items[id], paras = tx(it.read, it.of).split("\n\n").map(p => `<p>${p.replace(/\n/g,"<br>")}</p>`).join("");
+  show(`<div class="clue-paper ${it.kind || "note"}"><i class="tape"></i><h3>${it.name}</h3>${paras}<span class="inkblot"></span></div><button class="choice" id="x">돌아가기</button>`, "bag read");
   $("#x").onclick = showBag;
 }
 function showBag(){
@@ -651,7 +661,7 @@ function bunkerBg(){
   const img = D.bunker && D.bunker.img;
   $("#bunker-img").style.setProperty("--bimg", img ? `url("${new URL(img, document.baseURI).href}")` : "none");
 }
-function enter(){ bunkerBg(); $("#title").classList.add("hide"); render(); if(!S.flags.intro) showIntro(); }
+function enter(){ bunkerBg(); $("#title").classList.add("hide"); render(); if(!S.flags.intro) showIntro(); else checkNight(); }
 $("#t-start").onclick = () => {
   const sv = load();
   if(sv && sv.started && !sv.over && !confirm("저장된 진행 상황이 지워집니다. 새로 시작할까요?")) return;
