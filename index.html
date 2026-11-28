@@ -47,29 +47,24 @@
   </header>
 
   <div id="stage">
-    <!-- 벙커: 게임의 기본 화면 -->
-    <section id="bunker" aria-label="벙커">
-      <div id="bunker-img"></div>
-      <div id="bunker-title" class="plate">벙커</div>
-      <div id="bk-party" aria-live="polite"></div>
-      <div class="bk-menu">
-        <button id="bk-go" class="primary"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.500 8.500l-2 5-5 2 2-5z"/></svg><span>탐 험</span><small>폐허의 지도를 펼친다</small><em aria-hidden="true">→</em></button>
-        <button id="bk-sleep"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.500A8 8 0 0 1 9.500 4a8 8 0 1 0 10.500 10.500z"/></svg><span>잠들기</span></button>
-        <button id="bk-inv"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9h12l1 11H5zM9 9V7a3 3 0 0 1 6 0v2M9 13h6"/></svg><span>가방</span></button>
-        <button id="bk-log"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM5 18a2 2 0 0 1 2-2h12M9 8h6"/></svg><span>기록</span></button>
-      </div>
-    </section>
-
     <!-- 탐험 지도 -->
-    <section id="map" aria-label="지도" hidden>
+    <section id="map" aria-label="지도">
       <div id="map-img"></div>
       <div id="map-title"></div>
       <div id="nodes"></div>
       <button id="btn-back" hidden>← 뒤로</button>
     </section>
 
-    <!-- 며칠째인지: 벙커/지도 오른쪽 위에 항상 표시 -->
-    <div id="daytag" aria-live="polite"><small>DAY</small><b id="day-no">1</b><span>일차</span></div>
+    <!-- 시계: 왼쪽 위. 탐험할 때마다 시간이 흐른다 -->
+    <div id="clock" aria-live="off">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <circle class="face" cx="32" cy="32" r="27"/>
+        <g class="ticks"></g>
+        <line id="ck-h" x1="32" y1="32" x2="32" y2="17"/><line id="ck-m" x1="32" y1="32" x2="32" y2="10"/>
+        <circle cx="32" cy="32" r="2.600" class="pin"/>
+      </svg>
+      <div class="ck-txt"><b id="ck-time">07:00</b><span id="ck-day"><span id="day-no">1</span>일차 · <em id="ck-phase">아침</em></span></div>
+    </div>
   </div>
 
   <footer id="status">
@@ -90,14 +85,6 @@
         <g id="scribbles"></g>
       </g></svg>
       <div class="txt"><span class="lab">정신력</span><b id="san-num"></b><div id="san-bar" class="bar"></div></div>
-    </div>
-    <div class="vital act" id="v-act">
-      <svg class="ico" viewBox="0 0 64 64" aria-hidden="true">
-        <path class="bg" d="M23 20 L19 46 H45 L41 20Z"/>
-        <g id="flame"><path d="M32 26 C40 34 40 42 32 46 C24 42 24 34 32 26Z" fill="#f0b43a" fill-opacity=".85"/><path d="M32 26 C40 34 40 42 32 46 C24 42 24 34 32 26Z" fill="url(#hatchO)"/></g>
-        <g class="line" fill="none" filter="url(#rough)"><path d="M21 16 Q32 0 43 16"/><path d="M19 16h26l-4 5H23z"/><path d="M23 21 L19 46 H45 L41 21"/><path d="M16 46h32v6H16z"/><path d="M32 21v5M27 21l-1 25M37 21l1 25"/></g>
-      </svg>
-      <div class="txt"><span class="lab">낮빛</span><b id="act-num"></b><div id="act-bar" class="bar act"></div></div>
     </div>
   </footer>
 </main>
